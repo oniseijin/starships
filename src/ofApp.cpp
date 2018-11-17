@@ -4,7 +4,7 @@
 void ofApp::setup(){
     
     verticalBounds = ofGetHeight() - controls;
-    starField.load("starfield-6x6.jpg");
+    starField.load("starfield-1500.jpg");
     backgroundRipple = new Ripple(&starField);
     //244, 187, 255,
     //127,229,238
@@ -63,7 +63,12 @@ void ofApp::update(){
     // prevent resize
     int w = ofGetWidth();
 	int h = ofGetHeight();
-	if(w != 600 || h != 700) ofSetWindowShape(600, 700);
+    if(w != 1500 || h != 900) {
+        
+        ofSetWindowShape(1500, 900);
+        ofSetWindowPosition((w-1500)/2, (h-900)/2); // center full screen again
+        
+    }
     shipA->update();
     shipB->update();
     if (RIPPLE)backgroundRipple->update();
@@ -157,8 +162,10 @@ void ofApp::handleControls(){
 void ofApp::restart(){
     shipA->strength = 5;
     shipA->active = true;
+    shipA->starship.load("starship1.png");
     shipB->strength = 5;
     shipB->active = true;
+    shipB->starship.load("starship_purple.png");
     
 }
 

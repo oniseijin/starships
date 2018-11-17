@@ -100,8 +100,8 @@ void Ship::display(){
     for(Lazer lazer: lazers){
         lazer.display();
     }
-    if(!active) return;
-    shield->display();
+    // if(!active) return; // keep the flame displayed
+    if (active) shield->display();
     
     
     ofPushMatrix();
@@ -109,7 +109,7 @@ void Ship::display(){
     // ofRotate works in degrees, not radians
     ofRotateRad(rotation);
     ofPushStyle();
-    if(strength <= 1.0){
+    if(strength <= 1.0 && active){
         ofPushStyle();
         ofSetColor(255, 0, 0); // in trouble, show red
         ofNoFill();
@@ -134,6 +134,7 @@ void Ship::shoot(){
 }
 
 void Ship::thruster(float t){
+    if(!active) return;
     float r = rotation - HALF_PI; // sync the rotation up with the starting direction of the ship
     
     float f1 = cos(r) * t;  // sin is actually the y component
@@ -165,6 +166,7 @@ void Ship::halfAccelerate(){
 }
 
 void Ship::increaseRotation(float rad){
+    if(!active) return; 
     rotation += rad;
     if (rotation > TWO_PI){
         rotation = rotation - TWO_PI; // reset
@@ -190,6 +192,7 @@ void Ship::handleCollision(Lazer* collidedLazer){
     }
     
     if (strength <= 0.0){
+        starship.load("flame.png");
         active = false; // lose!
         // TODO, handle ripple with GLSL
         //backgroundRipple.causeRipple((int)position.x, (int)position.y, 4096);
