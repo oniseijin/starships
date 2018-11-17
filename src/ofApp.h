@@ -64,7 +64,13 @@ public:
     bool twoDown = false;
     bool fiveDown = false;
     bool eightDown = false;
-    bool sixDown = false; 
+    bool sixDown = false;
+    // B alternative
+    bool pDown = false;
+    bool lDown = false;
+    bool colonDown = false;
+    bool apposDown = false;
+    bool slashDown = false;
     
     
        

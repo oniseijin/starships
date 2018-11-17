@@ -46,7 +46,7 @@ void Shield::display(){
         if(strength <= 1.0){
             ofSetColor(255, 0, 0);
         }
-        ofEllipse(ship->position->x, ship->position->y, size, size);
+        ofDrawEllipse(ship->position->x, ship->position->y, size, size);
         ofPopMatrix();
         ofPopStyle();
     }

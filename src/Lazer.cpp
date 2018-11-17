@@ -60,7 +60,7 @@ void Lazer::display(){
     ofSetColor(this->color->r, this->color->g, this->color->b, 255);
     //244, 187, 255,
     //127,229,238
-    ofLine(position->x, position->y, endPoint->x, endPoint->y);
+    ofDrawLine(position->x, position->y, endPoint->x, endPoint->y);
     //ellipse(position.x, position.y, 15, 15); // to check the direction
     ofPopStyle();
     

@@ -92,7 +92,7 @@ void CircleButten::display()
     ofSetColor(currentcolor); // TODO, confirm if functionally the same
     ofFill(); // this is the above color
     //ofSetColor(255); // XXX use currentColor? (future colors, not the fill?)
-    ofEllipse(x, y, size, size);
+    ofDrawEllipse(x, y, size, size);
     ofPopStyle();
 }
 
@@ -128,7 +128,7 @@ void RectButton::display()
     ofSetColor(currentcolor); // TODO, confirm if functionally the same
     ofFill(); // this is the above color
     //ofSetColor(255); // XXX use currentColor? (future colors, not the fill?)
-    ofRect(x, y, size, size);
+    ofDrawRectangle(x, y, size, size);
     ofPopStyle();
     
    

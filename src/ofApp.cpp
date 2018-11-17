@@ -143,11 +143,11 @@ void ofApp::handleControls(){
     }
     
     // ship b
-    if (fourDown && ofGetFrameNum()%2==0){
+    if ((lDown || fourDown) && ofGetFrameNum()%2==0){
         shipB->increaseRotation(-0.07);
-    } if (sixDown && ofGetFrameNum()%2==0){
+    } if ((apposDown || sixDown) && ofGetFrameNum()%2==0){
         shipB->increaseRotation(0.07);
-    } if (fiveDown && ofGetFrameNum()%2==0) {
+    } if ((colonDown || fiveDown ) && ofGetFrameNum()%2==0) {
         shipB->thruster(-0.0125);
     }
     
@@ -181,20 +181,31 @@ void ofApp::keyPressed(int key){
         wDown = true;
         shipA->shoot();
     }
+    // B
     if (key == '4'){
         fourDown = true;
-        //shipA->increaseRotation(-0.15);
     } if (key == '6'){
         sixDown = true;
-        //shipA->increaseRotation(0.15);
     } if (key == '5') {
         fiveDown = true;
-        //shipA->thruster(-0.05);
     } if(key == '2'){
         twoDown = true;
         shipB->shield->toggleShield();
     } if(key == '8'){
         eightDown = true;
+        shipB->shoot();
+    // B alternative
+    } if (key == ';'){
+        colonDown = true;
+    } if (key == '\''){
+        apposDown = true;
+    } if (key == 'l') {
+        lDown = true;
+    } if(key == '/'){
+        slashDown = true;
+        shipB->shield->toggleShield();
+    } if(key == 'p'){
+        pDown = true;
         shipB->shoot();
     } if(key == 'g'){
         //loop(); // TODO
@@ -228,9 +239,18 @@ void ofApp::keyReleased(int key){
         
     } if(key == '8'){
         eightDown = false;
-        
     } if(key == '2'){
         twoDown = false;
+    } if(key == 'p'){
+        pDown = false;
+    }if(key == 'l'){
+        lDown = false;
+    } if (key == '\'') {
+        apposDown = false;
+    } if(key == '/'){
+        slashDown = false;
+    } if(key == ';'){
+        colonDown = false;
     }
 }
 

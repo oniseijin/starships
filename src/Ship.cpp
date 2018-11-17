@@ -18,7 +18,7 @@ Ship::Ship(int x, int y, int verticalBounds, Ripple* ripple, rgb* lazerColor){
     rotation = 0.0;
     strength = 5;
     shield = new Shield(this);
-    starship.loadImage("starship1.png");
+    starship.load("starship1.png");
     //lazers = new ArrayList<Lazer>();
     //inactiveLazers =  new ArrayList<Lazer>();
     active = true;
@@ -107,13 +107,13 @@ void Ship::display(){
     ofPushMatrix();
     ofTranslate(position->x, position->y);
     // ofRotate works in degrees, not radians
-    ofRotate(ofRadToDeg(rotation));
+    ofRotateRad(rotation);
     ofPushStyle();
     if(strength <= 1.0){
         ofPushStyle();
         ofSetColor(255, 0, 0); // in trouble, show red
         ofNoFill();
-        ofEllipse(0, -7, 23, 23);
+        ofDrawEllipse(0, -7, 23, 23);
         ofPopStyle(); 
     }
     starship.draw(-25/2, -40/2, 25, 40);
