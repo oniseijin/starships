@@ -16,6 +16,9 @@ class Lazer;
 class Shield;
 #include "Shield.h"
 #include "Ripple.h"
+#include "Sounds.h"
+
+
 
 class Ship{
     
@@ -31,7 +34,13 @@ public:
     vector<Lazer> inactiveLazers;
     int MAX_LAZERS = 10;
     bool active;
-    ofImage starship; 
+    bool thrustOn; 
+    ofImage starship;
+    ofImage starshipThrust; 
+    ofSoundPlayer explosionSound;
+    ofSoundPlayer hitSound;
+    ofSoundPlayer thrustSound;
+    ofSoundPlayer thrustLongSound; 
     Ship(int x, int y, int verticalBounds, Ripple* backgroundRipple, rgb* lazerColor);
     void display();
     void update();
@@ -40,6 +49,9 @@ public:
     /** actually shoot */
     void shoot();
     void thruster(float t);
+    void thrusterSound();
+    void thrusterLongSoundStart();
+    void thrusterLongSoundStop(); 
     void changeAcceleration(float x, float y);
     void halfAccelerate();
     void increaseRotation(float rad);

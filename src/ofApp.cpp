@@ -13,6 +13,7 @@ void ofApp::setup(){
     shipA = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, blue);
     shipB = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, pink);
     shipB->starship.load("starship_purple.png");
+    shipB->starshipThrust.load("starship_purple_thrust.png");
     shipA->opponentShip = shipB;
     shipB->opponentShip = shipA;
     buttoncolor.set(204);
@@ -125,6 +126,7 @@ void ofApp::handleControls(){
         if (ofGetFrameNum()%2==0){
             if(btnAThruster->pressed()){
                 shipA->thruster(-0.0125);
+                // can't get the sound to work here for longer thrust
             }
         }
         if (ofGetFrameNum()%2==0){ // slightly faster
@@ -145,6 +147,7 @@ void ofApp::handleControls(){
         shipA->increaseRotation(0.07);
     } if (sDown && ofGetFrameNum()%2==0) {
         shipA->thruster(-0.0125);
+        shipA->thrusterLongSoundStart();
     }
     
     // ship b
@@ -154,6 +157,7 @@ void ofApp::handleControls(){
         shipB->increaseRotation(0.07);
     } if ((colonDown || fiveDown ) && ofGetFrameNum()%2==0) {
         shipB->thruster(-0.0125);
+        shipB->thrusterLongSoundStart();
     }
     
 }
@@ -179,6 +183,7 @@ void ofApp::keyPressed(int key){
         dDown = true;
         //shipA->increaseRotation(0.15);
     } if (key == 's') {
+        shipA->thrusterSound();
         sDown = true;
         //shipA->thruster(-0.05);
     } if(key == 'x'){
@@ -194,6 +199,7 @@ void ofApp::keyPressed(int key){
     } if (key == '6'){
         sixDown = true;
     } if (key == '5') {
+        shipB->thrusterSound();
         fiveDown = true;
     } if(key == '2'){
         twoDown = true;
@@ -203,6 +209,7 @@ void ofApp::keyPressed(int key){
         shipB->shoot();
     // B alternative
     } if (key == ';'){
+        shipB->thrusterSound();
         colonDown = true;
     } if (key == '\''){
         apposDown = true;
@@ -230,6 +237,7 @@ void ofApp::keyReleased(int key){
         dDown = false;
         
     } if (key == 's') {
+        shipA->thrusterLongSoundStop();
         sDown = false;
         
     } if(key == 'x'){
@@ -241,6 +249,7 @@ void ofApp::keyReleased(int key){
         fourDown = false;
     }if(key == '5'){
         fiveDown = false;
+        shipB->thrusterLongSoundStop();
     } if (key == '6') {
         sixDown = false;
         
@@ -257,6 +266,7 @@ void ofApp::keyReleased(int key){
     } if(key == '/'){
         slashDown = false;
     } if(key == ';'){
+        shipB->thrusterLongSoundStop();
         colonDown = false;
     }
 }

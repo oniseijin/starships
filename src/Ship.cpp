@@ -9,6 +9,7 @@
 #include "Ship.h"
 #include "ofMain.h"
 #include "Lazer.h"
+#include "Images.h"
 //#include <algorithm>
 
 Ship::Ship(int x, int y, int verticalBounds, Ripple* ripple, rgb* lazerColor){
@@ -18,13 +19,15 @@ Ship::Ship(int x, int y, int verticalBounds, Ripple* ripple, rgb* lazerColor){
     rotation = 0.0;
     strength = 5;
     shield = new Shield(this);
-    starship.load("starship1.png");
+    starship.load(SHIP_IMAGE);
+    starshipThrust.load(SHIP_THRUST_IMAGE);
     //lazers = new ArrayList<Lazer>();
     //inactiveLazers =  new ArrayList<Lazer>();
     active = true;
     backgroundRipple = ripple;
     this->verticalBounds = verticalBounds;
     this->lazerColor = lazerColor;
+    thrustOn = false;
     
     
 }
@@ -116,7 +119,11 @@ void Ship::display(){
         ofDrawEllipse(0, -7, 23, 23);
         ofPopStyle(); 
     }
-    starship.draw(-25/2, -40/2, 25, 40);
+    if(thrustOn){
+        starshipThrust.draw(-25/2, -40/2, 25, 40);
+    } else {
+        starship.draw(-25/2, -40/2, 25, 40);
+    }
     ofPopStyle();
     ofPopMatrix();
     
@@ -131,6 +138,39 @@ void Ship::shoot(){
         lazers.push_back(*l->shoot());
     }
     
+}
+
+void Ship::thrusterSound(){
+    if(thrustSound.isPlaying()){
+        return;
+    }
+    // else
+    /** bit annoy
+    thrustSound.load(THRUST_SOUND);
+    thrustSound.setVolume(0.1f);
+    thrustSound.play();
+    */
+}
+
+void Ship::thrusterLongSoundStop(){
+    thrustOn = false;
+    if(thrustLongSound.isPlaying()){
+        thrustLongSound.stop();
+        
+    }
+    
+}
+
+void Ship::thrusterLongSoundStart(){
+    thrustOn = true;
+    if(thrustLongSound.isPlaying()){
+        return;
+    }
+    //starship.load(SHIP_THRUST_IMAGE); // swap out for thrust image (won't work, stutters slightly, need a separate image to overlay, and then remove.hide, or use two images and hide one then the other
+    // else
+    thrustLongSound.load(THRUST_LONG_SOUND);
+    thrustLongSound.setVolume(0.5f);
+    thrustLongSound.play();
 }
 
 void Ship::thruster(float t){
@@ -185,6 +225,8 @@ void Ship::setAcceleration(float x, float y){
  Will either reduce strength, shield life, or destroy ship
  */
 void Ship::handleCollision(Lazer* collidedLazer){
+    hitSound.load(HITSOUND_SOUND);
+    hitSound.play();
     if(shield->on){
         shield->strength -= 1;
     } else{
@@ -193,6 +235,8 @@ void Ship::handleCollision(Lazer* collidedLazer){
     
     if (strength <= 0.0){
         starship.load("flame.png");
+        explosionSound.load(EXPLOSION_SOUND);
+        explosionSound.play();
         active = false; // lose!
         // TODO, handle ripple with GLSL
         //backgroundRipple.causeRipple((int)position.x, (int)position.y, 4096);

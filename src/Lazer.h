@@ -16,6 +16,7 @@ class rgb;
 class Shield;
 #include "Shield.h"
 #include "Ripple.h"
+#include "Sounds.h"
 
 
 
@@ -33,6 +34,7 @@ class Lazer{
  
 public:
     Lazer(Ship* ship, int verticalBounds, Ripple* backgroundRipple, rgb* color);
+    ofSoundPlayer lazerSound; 
     float LENGTH = 20;
     float SPEED = 11;
     int KEEP_ALIVE = 650;

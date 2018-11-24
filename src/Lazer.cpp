@@ -28,6 +28,9 @@ Lazer::Lazer(Ship* ship, int verticalBounds, Ripple* ripple, rgb* color ){
     backgroundRipple = ripple;
     shoot();
     this->color= color;
+    //lazerSound.setMultiPlay(true); // has no affect
+    lazerSound.load(LAZER_SOUND);
+   
     
 }
 
@@ -123,5 +126,7 @@ Lazer* Lazer::shoot(){
     velocity->y = sin(angle) *SPEED; // cos is actually the x component
     position->set(ship->position->x, ship->position->y);
     active = true;
+    lazerSound.load(LAZER_SOUND); // have to load before each call
+    lazerSound.play();
     return this;
 }
