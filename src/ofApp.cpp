@@ -2,13 +2,13 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    
+    ofSetFrameRate(60); 
     verticalBounds = ofGetHeight() - controls;
     starField.load("starfield-1500.jpg");
     backgroundRipple = new Ripple(&starField);
     //244, 187, 255,
     //127,229,238
-    rgb* pink = new rgb(244, 187, 255);
+    rgb* pink = new rgb(255,192,204);
     rgb* blue = new rgb(127, 229, 238);
     shipA = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, blue);
     shipB = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, pink);
