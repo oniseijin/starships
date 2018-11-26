@@ -8,7 +8,7 @@ Initially prototyped with Processing, OpenFrameworks was selected for performanc
 
 == Developing ==
 
-Ensure openFrameworks is installed to ~/.local/lib on MacOS
+Ensure openFrameworks is installed to ~/.local/lib on MacOS and code is checked out to ~/someworkspace/<starships>
 
 == End of Life ==
 
