@@ -2,7 +2,19 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetFrameRate(60); 
+    ofSetFrameRate(60);
+    this->w = MAX_WIDTH;
+    this->h = MAX_HEIGHT;
+    // if screen is too small, don't show the controls
+    //ofLogToConsole();
+    ofLog(OF_LOG_NOTICE, "height:" + ofToString(ofGetScreenHeight()));
+    if (ofGetScreenHeight() < MAX_HEIGHT){
+        h = ofGetScreenHeight();
+        this->controls = 0; // effectively hide the controls
+    }
+    if (ofGetScreenWidth() < MAX_WIDTH){
+        w = ofGetScreenWidth();
+    }
     verticalBounds = ofGetHeight() - controls;
     starField.load("starfield-1500.jpg");
     backgroundRipple = new Ripple(&starField);
@@ -64,10 +76,10 @@ void ofApp::update(){
     // prevent resize
     int w = ofGetWidth();
 	int h = ofGetHeight();
-    if(w != 1500 || h != 900) {
+    if(w != this->w || h != this->h ){
         
-        ofSetWindowShape(1500, 900);
-        ofSetWindowPosition((w-1500)/2, (h-900)/2); // center full screen again
+        ofSetWindowShape(this->w, this->h);
+        ofSetWindowPosition((w-this->w)/2, (h-this->h)/2); // center full screen again
         
     }
     shipA->update();
@@ -94,6 +106,7 @@ void ofApp::draw(){
     shipA->display();
     shipB->display();
     
+    // controls area
     Button* button;
     for(int x = 0; x< buttons.size(); x++){
         button = buttons.at(x);

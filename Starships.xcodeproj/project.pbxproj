@@ -40,6 +40,7 @@
 		8F664AB2AFD1BA4705A4E6B4 /* Lazer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Lazer.cpp; path = src/Lazer.cpp; sourceTree = SOURCE_ROOT; };
 		9413867521A981EE00FBCA5E /* Sounds.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Sounds.h; sourceTree = "<group>"; };
 		94C5EA0B21A995E200664F2E /* Images.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Images.h; sourceTree = "<group>"; };
+		94C5EA0C21B16B0D00664F2E /* Sizes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Sizes.h; sourceTree = "<group>"; };
 		C81113582E91166A31201FDC /* Ripple.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = Ripple.cpp; path = src/Ripple.cpp; sourceTree = SOURCE_ROOT; };
 		E42962AC2163EDD300A6A9E2 /* ofCamera.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ofCamera.cpp; path = ../../.local/lib/of_v0.10.1_osx_release/libs/openFrameworks/3d/ofCamera.cpp; sourceTree = SOURCE_ROOT; };
 		E42962AD2163EDD300A6A9E2 /* ofMesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ofMesh.h; path = ../../.local/lib/of_v0.10.1_osx_release/libs/openFrameworks/3d/ofMesh.h; sourceTree = SOURCE_ROOT; };
@@ -558,6 +559,7 @@
 				8BE0D8D44548EA8BF739BB0D /* Lazer.h */,
 				9413867521A981EE00FBCA5E /* Sounds.h */,
 				94C5EA0B21A995E200664F2E /* Images.h */,
+				94C5EA0C21B16B0D00664F2E /* Sizes.h */,
 				FA2C556961A8D247AB61531B /* Buttons.cpp */,
 				33096AD5161122A75CF637E5 /* CollisionDetection.h */,
 				C81113582E91166A31201FDC /* Ripple.cpp */,

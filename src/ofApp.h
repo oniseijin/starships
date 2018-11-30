@@ -4,6 +4,7 @@
 #include "Ship.h"
 #include "Ripple.h"
 #include "Buttons.h"
+#include "Sizes.h"
 
 
 class ofApp : public ofBaseApp{
@@ -32,6 +33,8 @@ public:
     ofImage starField;
     int controls = 100;
     int verticalBounds;
+    int w;
+    int h; 
     bool mouseDown = false;
     Ripple* backgroundRipple;
     ofColor buttoncolor;
