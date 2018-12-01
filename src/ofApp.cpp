@@ -10,12 +10,12 @@ void ofApp::setup(){
     ofLog(OF_LOG_NOTICE, "height:" + ofToString(ofGetScreenHeight()));
     if (ofGetScreenHeight() < MAX_HEIGHT){
         h = ofGetScreenHeight();
-        this->controls = 0; // effectively hide the controls
+        controls = 0; // effectively hide the controls
     }
     if (ofGetScreenWidth() < MAX_WIDTH){
         w = ofGetScreenWidth();
     }
-    verticalBounds = ofGetHeight() - controls;
+    verticalBounds = h - controls;
     starField.load("starfield-1500.jpg");
     backgroundRipple = new Ripple(&starField);
     //244, 187, 255,
