@@ -16,7 +16,6 @@ xcodebuild {
 
 task deploy(){
     dependsOn "deployLocal"
-    dependsOn "build"
 }
 
 task deployLocal(type: Copy, description: "copy to local Applications") {
