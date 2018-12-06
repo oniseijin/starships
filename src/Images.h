@@ -11,5 +11,6 @@
 
 static const std::string SHIP_IMAGE = "starship1.png";
 static const std::string SHIP_THRUST_IMAGE = "starship_thrust.png";
+static const std::string SHIP_GREEN_IMAGE = "bird_of_prey.png";
 
 #endif /* Images_h */

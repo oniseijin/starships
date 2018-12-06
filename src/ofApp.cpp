@@ -238,6 +238,11 @@ void ofApp::keyPressed(int key){
         //loop(); // TODO
     } if(key == 'r'){ // restart
         restart(); // TODO
+    }if (key == 'g'){
+        // flip over the B ship
+        shipA->starship.load(SHIP_GREEN_IMAGE);
+        shipA->starshipThrust.load(SHIP_GREEN_IMAGE);
+        //shipA->increaseRotation(-0.15);
     }
 }
 

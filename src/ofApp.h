@@ -5,6 +5,7 @@
 #include "Ripple.h"
 #include "Buttons.h"
 #include "Sizes.h"
+#include "Images.h"
 
 
 class ofApp : public ofBaseApp{
