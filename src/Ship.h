@@ -34,7 +34,8 @@ public:
     vector<Lazer> inactiveLazers;
     int MAX_LAZERS = 10;
     bool active;
-    bool thrustOn; 
+    bool thrustOn;
+    std::string baseImage; 
     ofImage starship;
     ofImage starshipThrust; 
     ofSoundPlayer explosionSound;

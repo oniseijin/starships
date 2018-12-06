@@ -24,6 +24,7 @@ void ofApp::setup(){
     rgb* blue = new rgb(127, 229, 238);
     shipA = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, blue);
     shipB = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, pink);
+    shipB->baseImage = "starship_purple.png";
     shipB->starship.load("starship_purple.png");
     shipB->starshipThrust.load("starship_purple_thrust.png");
     shipA->opponentShip = shipB;
@@ -179,10 +180,10 @@ void ofApp::handleControls(){
 void ofApp::restart(){
     shipA->strength = 5;
     shipA->active = true;
-    shipA->starship.load("starship1.png");
+    shipA->starship.load(shipA->baseImage);
     shipB->strength = 5;
     shipB->active = true;
-    shipB->starship.load("starship_purple.png");
+    shipB->starship.load(shipB->baseImage);
     
 }
 
@@ -240,6 +241,7 @@ void ofApp::keyPressed(int key){
         restart(); // TODO
     }if (key == 'g'){
         // flip over the B ship
+        shipA->baseImage = SHIP_GREEN_IMAGE;
         shipA->starship.load(SHIP_GREEN_IMAGE);
         shipA->starshipThrust.load(SHIP_GREEN_IMAGE);
         //shipA->increaseRotation(-0.15);

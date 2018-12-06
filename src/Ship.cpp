@@ -19,6 +19,7 @@ Ship::Ship(int x, int y, int verticalBounds, Ripple* ripple, rgb* lazerColor){
     rotation = 0.0;
     strength = 5;
     shield = new Shield(this);
+    baseImage = SHIP_IMAGE;
     starship.load(SHIP_IMAGE);
     starshipThrust.load(SHIP_THRUST_IMAGE);
     //lazers = new ArrayList<Lazer>();
