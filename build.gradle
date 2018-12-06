@@ -11,6 +11,7 @@
 
 xcodebuild {
     target = "Starships"
+    target = "Release"
 }
 
 task deploy(){
