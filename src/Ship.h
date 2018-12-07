@@ -58,6 +58,7 @@ public:
     void increaseRotation(float rad);
     void setAcceleration(float x, float y);
     void handleCollision(Lazer* collidedLazer);
+    void setLazerColor(ofColor& color);
     Ship* opponentShip;
     rgb* lazerColor; 
     

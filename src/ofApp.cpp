@@ -20,10 +20,10 @@ void ofApp::setup(){
     backgroundRipple = new Ripple(&starField);
     //244, 187, 255,
     //127,229,238
-    rgb* pink = new rgb(255,192,204);
-    rgb* blue = new rgb(127, 229, 238);
-    shipA = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, blue);
-    shipB = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, pink);
+    rgb* aLazerDefault = new rgb(127,229,238);
+    rgb* bLazerDefault = new rgb(255,192,204);
+    shipA = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, aLazerDefault);
+    shipB = new Ship((int)ofGetWidth()/2, (int) verticalBounds /2, verticalBounds,  backgroundRipple, bLazerDefault);
     shipB->baseImage = "starship_purple.png";
     shipB->starship.load("starship_purple.png");
     shipB->starshipThrust.load("starship_purple_thrust.png");
@@ -66,8 +66,10 @@ void ofApp::setup(){
     */
     mHide = true;
     menu.setup("menu");
-    menu.add(aLazer.set("aLazer",ofColor(100,100,140),ofColor(0,0),ofColor(255,255)));
-    menu.add(bLazer.set("bLazer",ofColor(100,100,140),ofColor(0,0),ofColor(255,255)));
+    menu.add(aLazer.set("aLazer",ofColor(aLazerDefault->r,aLazerDefault->g,aLazerDefault->b),ofColor(0,0),ofColor(255,255)));
+    aLazer.addListener(shipA, &Ship::setLazerColor);
+    menu.add(bLazer.set("bLazer",ofColor(bLazerDefault->r,bLazerDefault->g,bLazerDefault->b),ofColor(0,0),ofColor(255,255)));
+    bLazer.addListener(shipB, &Ship::setLazerColor);
    
    
     

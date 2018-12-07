@@ -244,3 +244,9 @@ void Ship::handleCollision(Lazer* collidedLazer){
     }
     
 }
+
+void Ship::setLazerColor(ofColor& color){
+    this->lazerColor->b = color.b;
+    this->lazerColor->r = color.r;
+    this->lazerColor->g = color.g;
+}
