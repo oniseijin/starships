@@ -64,6 +64,10 @@ void ofApp::setup(){
     buttons.push_back(btnAShoot);
 
     */
+    mHide = true;
+    menu.setup("menu");
+    menu.add(aLazer.set("aLazer",ofColor(100,100,140),ofColor(0,0),ofColor(255,255)));
+    menu.add(bLazer.set("bLazer",ofColor(100,100,140),ofColor(0,0),ofColor(255,255)));
    
    
     
@@ -122,6 +126,10 @@ void ofApp::draw(){
      */
     
     //gui.draw();
+    
+    if( !mHide ){
+        menu.draw();
+    }
     
     
    
@@ -190,6 +198,10 @@ void ofApp::restart(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
     // TODO, want a way to continue taking some action until key released, even if another key is pressed (multiple actions at once) (would handle in update, and keep going until key is released)
+    if (key == 'm'){
+        mHide = !mHide;
+    }
+    
     if (key == 'a'){
         aDown = true;
         //shipA->increaseRotation(-0.15);

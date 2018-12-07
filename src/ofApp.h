@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxGui.h"
 #include "Ship.h"
 #include "Ripple.h"
 #include "Buttons.h"
@@ -79,6 +80,14 @@ public:
     
        
     void restart();
+    
+    // gui
+    
+    bool mHide; //menu hiding
+    
+    ofParameter<ofColor> aLazer;
+    ofParameter<ofColor> bLazer; 
+    ofxPanel menu;
     
     
 };
