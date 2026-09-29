@@ -3,3 +3,5 @@ bin/*.app
 .DS_store
 **/*xcuserstate
 build
+__pycache__
+*.pyc

@@ -70,3 +70,18 @@ Local 2-player duel (Asteroids-style: rotate, thrust, shoot, shield;
   Release — 2026-09-29. Debug target also compiles.
 - The legacy `Starships.xcodeproj` and `build.gradle` targets were NOT
   updated; the make build is the supported path (same as 2020).
+
+## Web 1v1 on the LAN (verdict + prototype)
+
+Verdict: **remake, not port.** An Emscripten port of the oF app would still
+have no networking — the original is two players sharing one keyboard — and
+the entire game is ~700 lines of simple, fully-specified logic, so a
+rules-faithful web remake is both cheaper and netplay-ready. A minimal
+host-authoritative prototype ships in `web/` (Python server runs the 60 Hz
+sim — a direct transcription of the C++ rules including the faithful quirks
+— and broadcasts to two browsers over WebSocket; original art/sounds served
+from `bin/data/`). All rules verified by tests 2026-09-29 (shield absorb,
+hull/death/restart, wrap self-hit, lazer cap, speed cap, grace).
+
+Try it: `web/run.sh` → open the printed LAN URL on two machines.
+Details: `web/README.md`.
