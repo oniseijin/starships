@@ -3,7 +3,14 @@
 
 Host-authoritative: the server runs the 60 Hz simulation (the same rules and
 constants as src/*.cpp from the original openFrameworks game) and broadcasts
-state at 30 Hz. Two browsers on the LAN each control one ship.
+state at 30 Hz.
+
+Modes (server-arbitrated):
+- hotseat — one connected browser drives BOTH ships (C++ couch play);
+- remote  — a second browser claims Ship B, each side flies its own ship
+  with either keyset; when Ship B's client leaves, hotseat returns.
+The `m` color menu sets either ship's lazer color from any client (the
+C++ panel is app-global); recolors in-flight lazers instantly.
 
 Run:
     uv run --python 3.13 --with websockets web/server.py
@@ -30,7 +37,10 @@ ASSETS_DIR = REPO_ROOT / "bin" / "data"  # original game art/sounds, served as /
 PORT = 47777
 
 # ---- faithful constants from src/Ship.h, Lazer.h, Shield.h, Sizes.h, ofApp.cpp
-W, H = 1500, 900              # Sizes.h MAX_WIDTH / MAX_HEIGHT (web: no control strip)
+# H = verticalBounds: the C++ window is 1500x900 (Sizes.h) minus ofApp.h's
+# controls = 100 bottom strip, so the SIM plays in 1500x800 (spawn y = 400).
+# The client letterboxes a 1500x900 canvas and renders the strip itself.
+W, H = 1500, 800
 MAX_SPEED = 10.0              # Ship.h
 ROT_STEP = 0.07               # ofApp.cpp increaseRotation per applied frame
 THRUST = -0.0125              # ofApp.cpp thruster()
@@ -71,7 +81,9 @@ class Ship:
         self.shield_strength = SHIELD_MAX
         self.shield_enabled = True
         self.lazers = []
-        self.color = color
+        self.color = list(color)  # the ONE shared rgb object (C++ rgb*): lazers
+                                  # hold a reference to this same list, so mutating
+                                  # it recolors in-flight lazers instantly
         self.skin = "normal"  # 'g' flips Ship A to bird_of_prey (one-way)
         self.events = []  # drained into the broadcast events list
 
@@ -88,6 +100,14 @@ class Ship:
         # pressing g again just reloads the same texture; only a fresh launch
         # starts unskinned.
         self.skin = "green"
+
+    def set_lazer_color(self, r, g, b):
+        # ofApp.cpp Ship::setLazerColor: writes INTO the shared rgb object
+        # (this->lazerColor->r = ...), never rebinds — every live lazer holds
+        # the same object, so already-in-flight lazers change color too.
+        self.color[0] = r
+        self.color[1] = g
+        self.color[2] = b
 
     def update(self):
         # physics (Ship::update)
@@ -250,7 +270,7 @@ class Game:
     @staticmethod
     def _blank_input():
         return {"left": False, "right": False, "thrust": False,
-                "fire": False, "shield": False, "restart": False,
+                "fire": 0, "shield": 0, "restart": False,
                 "green": False}
 
     def apply_input(self, slot, msg):
@@ -258,18 +278,38 @@ class Game:
         for k in ("left", "right", "thrust"):
             if k in msg:
                 cur[k] = bool(msg[k])
-        for k in ("fire", "shield", "restart"):  # edge-triggered actions
+        # fire/shield are counted, not folded into a flag: C++ runs the
+        # action once per keyPressed (OS key-repeat re-fires), so holding
+        # fire auto-fires and holding shield flickers on/off rapidly.
+        for k in ("fire", "shield"):
             if msg.get(k):
-                cur[k] = True
+                cur[k] += 1
+        if msg.get("restart"):
+            cur["restart"] = True
         if slot == "a" and msg.get("green"):
-            # 'g' is Ship A only, and only from the connection that owns
-            # Ship A (spectators / Ship B pressing g do nothing)
+            # 'g' is Ship A only; routed here only from a connection allowed
+            # to drive Ship A (its owner, or the hotseat client)
             cur["green"] = True
+
+    def apply_color(self, msg):
+        # 'm' menu color-set. In C++ the ofxPanel is app-global (one shared
+        # panel on the one machine), so ANY connected client may set either
+        # ship's color; last write wins. RGBA range full; draw alpha is 255
+        # in C++ (ofSetColor(r,g,b,255)), so only rgb is tracked here.
+        ship = {"a": self.a, "b": self.b}.get(msg.get("ship"))
+        if ship is None:
+            return
+        try:
+            rgb = (int(msg[k]) for k in ("r", "g", "b"))
+            ship.set_lazer_color(*(max(0, min(255, v)) for v in rgb))
+        except (KeyError, TypeError, ValueError):
+            pass
 
     def tick(self):
         self.frame += 1
         self.a.update()
         self.b.update()
+        restart = False
         for slot, ship in (("a", self.a), ("b", self.b)):
             inp = self.pending[slot]
             if self.frame % INPUT_EVERY == 0:
@@ -282,23 +322,28 @@ class Game:
                     ship.thrust_on = True
                 else:
                     ship.thrust_on = False
-            if inp["fire"]:
+            for _ in range(inp["fire"]):
                 ship.fire()
-                inp["fire"] = False
-            if inp["shield"]:
+            inp["fire"] = 0
+            for _ in range(inp["shield"]):
                 ship.toggle_shield()
-                inp["shield"] = False
+            inp["shield"] = 0
             if inp["restart"]:
-                ship.restart()
                 inp["restart"] = False
+                restart = True
             if inp["green"]:
                 ship.set_green()
                 inp["green"] = False
+        if restart:
+            # ofApp::restart() resets BOTH ships (r is global). Lazer colors
+            # and skins survive: it only touches strength/active/baseImage.
+            self.a.restart()
+            self.b.restart()
         if self.frame % HALF_ACCEL_EVERY == 0:
             self.a.half_accel()
             self.b.half_accel()
 
-    def snapshot(self):
+    def snapshot(self, mode="remote"):
         events = self.events
         self.events = []
         for ship in (self.a, self.b):
@@ -313,10 +358,11 @@ class Game:
                 "sh": s.shield_on and s.shield_enabled,
                 "shStr": round(s.shield_strength, 2),
                 "skin": s.skin,
+                "col": [s.color[0], s.color[1], s.color[2]],
             }
 
         return json.dumps({
-            "t": "s", "f": self.frame,
+            "t": "s", "f": self.frame, "mode": mode,
             "a": ship_state(self.a), "b": ship_state(self.b),
             "L": [
                 {"x": round(l.x, 1), "y": round(l.y, 1),
@@ -328,7 +374,15 @@ class Game:
 
 
 class Clients:
-    """Connection registry: first ws = ship A, second = ship B, rest watch."""
+    """Connection registry: first ws = ship A, second = ship B, rest watch.
+
+    Mode (mirrors the C++ one-keyboard couch setup):
+    - hotseat — a single connected browser sends input for BOTH ships
+      (its A keyset -> ship A, B keysets -> ship B).
+    - remote  — a second browser claims Ship B; each client then controls
+      only its own ship with either keyset. If Ship B's client leaves, the
+      remaining client returns to hotseat.
+    """
 
     def __init__(self):
         self.slots = {"a": None, "b": None}
@@ -348,26 +402,67 @@ class Clients:
             if conn is ws:
                 self.slots[name] = None
 
+    def slot_of(self, ws):
+        for name, conn in self.slots.items():
+            if conn is ws:
+                return name
+        return None
+
+    def mode(self):
+        if len(self.all) == 1 and any(self.slots.values()):
+            return "hotseat"  # the one client owns a ship and flies both
+        return "remote"
+
+
+def route_input(clients, sender, msg):
+    """Which ship does this input drive? None = drop it.
+
+    - Ship A mouse buttons ("via":"button") drive Ship A from ANY client in
+      ANY mode — that is the C++ semantic (ofApp's RectButtons always move
+      shipA, whoever is at the keyboard).
+    - hotseat: the only connected client tags its keyset ("ship":"a"|"b")
+      and drives both ships.
+    - remote: either keyset drives YOUR own ship (the v0.1.1 rule); the tag
+      is ignored.
+    """
+    if msg.get("via") == "button":
+        return "a"
+    own = clients.slot_of(sender)
+    if own is None:
+        return None
+    if clients.mode() == "hotseat":
+        ship = msg.get("ship")
+        if ship in ("a", "b"):
+            return ship
+    return own
+
 
 async def ws_handler(websocket, game, clients):
     slot = clients.register(websocket)
     player = {"a": "A", "b": "B", None: "?"}[slot]
-    hello = json.dumps({"t": "welcome", "player": player})
+    hello = json.dumps({"t": "welcome", "player": player,
+                        "mode": clients.mode()})
     await websocket.send(hello)
-    print(f"client connected as Ship {player} ({len(clients.all)} connected)")
+    print(f"client connected as Ship {player} "
+          f"({len(clients.all)} connected, {clients.mode()})")
     try:
         async for raw in websocket:
             try:
                 msg = json.loads(raw)
             except (ValueError, TypeError):
                 continue
-            if msg.get("t") == "input" and slot:
-                game.apply_input(slot, msg)
+            if msg.get("t") == "color":
+                game.apply_color(msg)  # any client, last write wins
+            elif msg.get("t") == "input":
+                target = route_input(clients, websocket, msg)
+                if target:
+                    game.apply_input(target, msg)
     except websockets.ConnectionClosed:
         pass
     finally:
         clients.unregister(websocket)
-        print(f"client disconnected (Ship {player})")
+        print(f"client disconnected (Ship {player}, "
+              f"{len(clients.all)} left, {clients.mode()})")
 
 
 def lan_ip():
@@ -444,14 +539,16 @@ async def main():
         print(f"   this Mac : http://localhost:{port}")
         print(f"   LAN      : http://{ip}:{port}   <-- open on both machines")
         print(f"   ws       : ws://{ip}:{port + 1}")
-        print("   first tab = Ship A (a/d/s/w/x, g = green skin), second = Ship B (4/6/5/8/2 or l/'/;/p//)")
+        print("   one browser  = hotseat (one keyboard flies BOTH ships)")
+        print("   two browsers = remote 1v1 (either keyset flies YOUR ship)")
+        print("   keys: A a/d/s/w/x + g   B 4/6/5/8/2 or l/'/;/p//   r restart   m colors")
         print("=" * 62)
 
         tick_rate = 1 / 60.0
         while True:
             game.tick()
             if game.frame % 2 == 0:  # broadcast at 30 Hz
-                snapshot = game.snapshot()
+                snapshot = game.snapshot(clients.mode())
                 dead = []
                 for ws in list(clients.all):
                     try:

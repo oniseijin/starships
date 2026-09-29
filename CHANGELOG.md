@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## [0.1.2] — 2026-09-30
+
+* `web/`: hotseat mode — a single connected browser is the couch game (one
+  keyboard flies BOTH ships: A keyset → Ship A, B keysets → Ship B, `r`
+  global, `g` Ship A only); a second browser claims Ship B and everyone
+  flips to remote 1v1 (either keyset flies your own ship, the v0.1.1 rule);
+  Ship B's disconnect returns the remaining client to hotseat. Server
+  arbitrates slot ownership; clients render a hotseat/remote HUD indicator.
+* `web/`: the `m` lazer-color menu (C++ ofxPanel port) — aLazer (cyan
+  127,229,238) + bLazer (pink 255,192,204) pickers, full RGB range, drawn
+  at alpha 255 as in `Lazer::display`. Mouse/touch only; the game keeps
+  running and all keys still steer while open. Colors are app-global (any
+  connected client, last write wins) and survive `r`; fresh process =
+  defaults. Replicates the shared-mutable-color quirk: recoloring a ship
+  recolors its already-in-flight lazers instantly (one color object per
+  ship, referenced by every lazer, serialized at broadcast time).
+* `web/` parity: OS key-repeat re-fires fire/shield (holding fire
+  auto-fires, holding shield flickers — counted per-action server-side, no
+  client repeat guard; `m`/`g`/`r` keep a one-shot guard); arena is the
+  C++ 1500×800 verticalBounds (spawn y=400) with the client letterboxing a
+  1500×900 canvas and rendering the 100px control strip; Ship A RectButtons
+  (shoot/left/right/thruster/shield at the C++ positions) drive Ship A from
+  any client in any mode; red hull≤1 ring moved inside the ship's rotated
+  transform (offset (0,−7) rotates with the ship); lazer line width 1px
+  (was 3); sound volumes fire/hit/explode 1.0, thrust loop 0.5 (C++
+  defaults).
+* `web/test_server.py`: 34 tests (from 14) covering the color menu (shared
+  color object, in-flight recolor, any-client set, clamping/validation),
+  repeat-fire (two actions = two lazers, 11-lazer cap), hotseat routing
+  (drive both → takeover → hotseat again, buttons from any client, lone
+  spectator not hotseat) and global restart semantics (both ships reset,
+  colors + skin survive, fresh process = defaults). All green.
+* Functional check: 17/17 live ws checks on throwaway ports (menu color-set
+  + in-flight recolor over the wire, hotseat transitions, global restart,
+  clamp); server torn down cleanly after.
+
 ## [0.1.1] — 2026-09-29
 
 * `web/`: green-ship port — `g` switches Ship A to the green Bird-of-Prey

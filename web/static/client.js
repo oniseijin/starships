@@ -1,15 +1,20 @@
-/* Starships web 1v1 client — renderer + input. The server is authoritative. */
+/* Starships web 1v1 client — renderer + input. The server is authoritative.
+   v0.1.2: hotseat/remote modes, `m` lazer-color menu, C++ Ship A mouse-button
+   strip, OS key-repeat fire/shield, 1500x800 arena + 100px control strip. */
 "use strict";
 
-const W = 1500, H = 900;
+const AW = 1500, AH = 900;  // C++ window (Sizes.h MAX_WIDTH/MAX_HEIGHT)
+const VB = 800;             // verticalBounds — ofApp.h controls = 100, the sim
+                            // plays in 1500x800; we render the strip below it
 const canvas = document.getElementById("game");
 const hud = document.getElementById("hud");
 const overlay = document.getElementById("overlay");
 
 function fit() {
-  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
-  canvas.style.width = (W * s) + "px";
-  canvas.style.height = (H * s) + "px";
+  // letterbox/scale the whole 1500x900 canvas (arena + strip) to the window
+  const s = Math.min(window.innerWidth / AW, window.innerHeight / AH);
+  canvas.style.width = (AW * s) + "px";
+  canvas.style.height = (AH * s) + "px";
 }
 window.addEventListener("resize", fit);
 fit();
@@ -38,7 +43,7 @@ function play(name, vol) {
   if (name === "thrust") return; // handled as a loop
   try {
     const a = new Audio(SND[name].src);
-    a.volume = vol || 0.4;
+    a.volume = vol; // C++ ofSoundPlayer default 1.0 (thrust loop 0.5)
     a.play().catch(() => {});
   } catch (e) { /* autoplay before user gesture — fine */ }
 }
@@ -47,8 +52,11 @@ function play(name, vol) {
 const wsPort = parseInt(location.port || "80", 10) + 1;
 const ws = new WebSocket(`ws://${location.hostname}:${wsPort}`);
 let me = null;          // "A" | "B" | null (spectator)
+let mode = "remote";    // "hotseat" | "remote" — server-arbitrated
 let state = null;       // latest server snapshot
 let thrustWasOn = false;
+
+function send(obj) { ws.send(JSON.stringify(obj)); }
 
 ws.onopen = () => { overlay.classList.add("hidden"); };
 ws.onclose = () => {
@@ -59,53 +67,183 @@ ws.onmessage = (ev) => {
   const msg = JSON.parse(ev.data);
   if (msg.t === "welcome") {
     me = msg.player;
+    mode = msg.mode || "remote";
     if (me === "A" || me === "B") overlay.classList.add("hidden");
     else overlay.textContent = "spectating (two players already connected)";
   } else if (msg.t === "s") {
     state = msg;
+    setMode(msg.mode);
     handleEvents(msg.e);
   }
 };
 
-function handleEvents(events) {
-  if (!events) return;
-  for (const e of events) {
-    if (e === "fire") play("fire", 0.35);
-    else if (e === "hit") play("hit", 0.5);
-    else if (e === "explode") play("explode", 0.7);
+function setMode(m) {
+  if (m === mode || !m) return;
+  mode = m;
+  if (m === "remote") {
+    // a second browser just claimed Ship B: I no longer fly it. Release
+    // whatever B-keyset state I held so Ship B does not drift on its own.
+    send({ t: "input", ship: "b", left: false, right: false, thrust: false });
+    sendHeld("a"); // re-assert my own held keys under remote routing
+  } else {
+    // back to hotseat: re-assert both keysets so held keys keep working
+    sendHeld("a");
+    sendHeld("b");
   }
 }
 
-/* ---- input (faithful keymaps; either keyset controls YOUR ship) ---- */
-const input = { left: false, right: false, thrust: false };
-const KEYMAP = {
-  a: "left", 4: "left", l: "left",
-  d: "right", 6: "right", "'": "right",
-  s: "thrust", 5: "thrust", ";": "thrust",
-};
-const FIRE_KEYS = new Set(["w", "8", "p"]);
-const SHIELD_KEYS = new Set(["x", "2", "/"]);
-
-function sendInput(extra) {
-  ws.send(JSON.stringify(Object.assign({ t: "input" }, input, extra || {})));
+function handleEvents(events) {
+  if (!events) return;
+  for (const e of events) {
+    if (e === "fire") play("fire", 1.0);
+    else if (e === "hit") play("hit", 1.0);
+    else if (e === "explode") play("explode", 1.0);
+  }
 }
+
+/* ---- input (faithful keymaps) ----
+   Ship A: a/d rotate, s thrust, w fire, x shield (+ g green skin).
+   Ship B: numpad 4/6 rotate, 5 thrust, 8 fire, 2 shield OR l/' rotate,
+   ; thrust, p fire, / shield (both sets live, as in ofApp). */
+const KEYSET = {
+  a: ["a", "left"],  d: ["a", "right"], s: ["a", "thrust"],
+  "4": ["b", "left"], "6": ["b", "right"], "5": ["b", "thrust"],
+  l: ["b", "left"], "'": ["b", "right"], ";": ["b", "thrust"],
+};
+const FIRE_KEYS = { w: "a", "8": "b", p: "b" };
+const SHIELD_KEYS = { x: "a", "2": "b", "/": "b" };
+
+// held-state per keyset (rotation/thrust are polled; fire/shield are edges)
+const held = {
+  a: { left: false, right: false, thrust: false },
+  b: { left: false, right: false, thrust: false },
+};
+const btnHeld = { left: false, right: false, thrust: false };
+
+function mergedHeld() {
+  return {
+    left: held.a.left || held.b.left,
+    right: held.a.right || held.b.right,
+    thrust: held.a.thrust || held.b.thrust,
+  };
+}
+function sendHeld(set) {
+  if (mode === "hotseat") send({ t: "input", ship: set, ...held[set] });
+  else send({ t: "input", ...mergedHeld() }); // either keyset flies YOUR ship
+}
+function sendAction(action, set) {
+  if (mode === "hotseat") send({ t: "input", ship: set, [action]: true });
+  else send({ t: "input", [action]: true });
+}
+
 document.addEventListener("keydown", (ev) => {
-  if (ev.repeat) return;
   const k = ev.key.toLowerCase();
-  if (KEYMAP[k]) { input[KEYMAP[k]] = true; sendInput(); }
-  else if (FIRE_KEYS.has(k)) sendInput({ fire: true });
-  else if (SHIELD_KEYS.has(k)) sendInput({ shield: true });
-  else if (k === "r") sendInput({ restart: true });
-  else if (k === "g") sendInput({ green: true }); // one-shot; server applies it to Ship A only
+  const km = KEYSET[k];
+  if (km) {
+    const [set, act] = km;
+    if (!held[set][act]) { held[set][act] = true; sendHeld(set); }
+    return;
+  }
+  // C++ re-fires edge actions on OS key-repeat: HOLDING fire auto-fires,
+  // HOLDING shield flickers on/off — no repeat guard here on purpose.
+  if (FIRE_KEYS[k]) { sendAction("fire", FIRE_KEYS[k]); return; }
+  if (SHIELD_KEYS[k]) { sendAction("shield", SHIELD_KEYS[k]); return; }
+  if (ev.repeat) return; // one-shot guard: r/g/m must not machine-gun
+  if (k === "r") send({ t: "input", restart: true });          // global
+  else if (k === "g") send({ t: "input", ship: "a", green: true }); // Ship A only
+  else if (k === "m") toggleMenu();
 });
 document.addEventListener("keyup", (ev) => {
-  const k = ev.key.toLowerCase();
-  if (KEYMAP[k]) { input[KEYMAP[k]] = false; sendInput(); }
+  const km = KEYSET[ev.key.toLowerCase()];
+  if (km) {
+    const [set, act] = km;
+    held[set][act] = false;
+    sendHeld(set);
+  }
 });
 window.addEventListener("blur", () => {
-  input.left = input.right = input.thrust = false;
-  sendInput();
+  for (const set of ["a", "b"]) {
+    held[set].left = held[set].right = held[set].thrust = false;
+  }
+  btnHeld.left = btnHeld.right = btnHeld.thrust = false;
+  if (mode === "hotseat") { sendHeld("a"); sendHeld("b"); }
+  else sendHeld("a");
+  sendBtn();
 });
+
+/* ---- Ship A mouse buttons (ofApp RectButtons, C++ semantics: they drive
+   Ship A in ANY mode, from any client — sent with via:"button") ---- */
+const BTN_SIZE = 19, BTN_BASE = "rgb(204,204,204)", BTN_HI = "rgb(153,153,153)";
+const btnOffset = AW / 2 - 55; // ofApp::setup offset
+const BUTTONS = {
+  shoot:    { x: btnOffset + 40, y: VB + 10 },
+  left:     { x: btnOffset + 20, y: VB + 30 },
+  shield:   { x: btnOffset + 40, y: VB + 50 },
+  right:    { x: btnOffset + 60, y: VB + 30 },
+  thruster: { x: btnOffset + 40, y: VB + 30 },
+};
+const pointer = { x: -1, y: -1 }; // canvas coords, for hover highlight
+
+function canvasPos(e) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (canvas.width / r.width),
+    y: (e.clientY - r.top) * (canvas.height / r.height),
+  };
+}
+function overButton(b) {
+  return pointer.x >= b.x && pointer.x <= b.x + BTN_SIZE &&
+         pointer.y >= b.y && pointer.y <= b.y + BTN_SIZE;
+}
+function sendBtn() {
+  send({ t: "input", ship: "a", via: "button", ...btnHeld });
+}
+canvas.addEventListener("pointermove", (e) => { Object.assign(pointer, canvasPos(e)); });
+canvas.addEventListener("pointerdown", (e) => {
+  const p = canvasPos(e);
+  for (const [name, b] of Object.entries(BUTTONS)) {
+    if (p.x < b.x || p.x > b.x + BTN_SIZE || p.y < b.y || p.y > b.y + BTN_SIZE) continue;
+    if (name === "shoot") send({ t: "input", ship: "a", via: "button", fire: true });
+    else if (name === "shield") send({ t: "input", ship: "a", via: "button", shield: true });
+    else { btnHeld[name] = true; sendBtn(); } // left/right/thruster are held
+  }
+});
+function releaseButtons() {
+  if (btnHeld.left || btnHeld.right || btnHeld.thrust) {
+    btnHeld.left = btnHeld.right = btnHeld.thrust = false;
+    sendBtn();
+  }
+}
+window.addEventListener("pointerup", releaseButtons);
+canvas.addEventListener("pointerleave", () => {
+  pointer.x = pointer.y = -1;
+  releaseButtons();
+});
+
+/* ---- `m` lazer-color menu (C++ ofxPanel "menu": aLazer + bLazer) ----
+   Mouse/touch only; the game keeps running and ALL keys still steer —
+   the panel swallows no keyboard. */
+const menuEl = document.getElementById("menu");
+const colA = document.getElementById("colA");
+const colB = document.getElementById("colB");
+
+function rgbToHex(c) {
+  return "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+}
+function toggleMenu() {
+  menuEl.classList.toggle("hidden");
+  if (!menuEl.classList.contains("hidden") && state) {
+    // initialize the pickers from the live server colors (shared panel)
+    colA.value = rgbToHex(state.a.col);
+    colB.value = rgbToHex(state.b.col);
+  }
+}
+function sendColor(ship, hex) {
+  const n = parseInt(hex.slice(1), 16);
+  send({ t: "color", ship, r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 });
+}
+colA.addEventListener("input", () => sendColor("a", colA.value));
+colB.addEventListener("input", () => sendColor("b", colB.value));
 
 /* ---- rendering ---- */
 const ctx = canvas.getContext("2d");
@@ -118,17 +256,18 @@ const SHIPS = {
 const GREEN_A = { body: "bird_of_prey.png", thrust: "bird_of_prey.png" };
 
 function drawShip(s, files) {
-  // red "in trouble" halo (Ship::display, strength <= 1)
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.rotate(s.r);
+  // red "in trouble" ring (Ship::display, strength <= 1): drawn INSIDE the
+  // rotated transform — the (0,-7) offset rotates with the ship
   if (s.active && s.hull <= 1) {
     ctx.strokeStyle = "rgb(255,0,0)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(s.x, s.y - 7, 11.5, 11.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -7, 11.5, 11.5, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
-  ctx.save();
-  ctx.translate(s.x, s.y);
-  ctx.rotate(s.r);
   const img = IMG[s.active ? (s.th ? files.thrust : files.body) : "flame.png"];
   if (img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, -12.5, -20, 25, 40);
@@ -148,14 +287,26 @@ function drawShip(s, files) {
   }
 }
 
+function drawButtons() {
+  // control strip below verticalBounds: C++ ofBackground(255) shows white
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, VB, AW, AH - VB);
+  for (const b of Object.values(BUTTONS)) {
+    ctx.fillStyle = overButton(b) ? BTN_HI : BTN_BASE;
+    ctx.fillRect(b.x, b.y, BTN_SIZE, BTN_SIZE);
+  }
+}
+
 function draw() {
+  // arena (starfield spans the 1500x800 playfield only)
   const sf = IMG["starfield-1500.jpg"];
-  if (sf.complete && sf.naturalWidth > 0) ctx.drawImage(sf, 0, 0, W, H);
-  else { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H); }
+  if (sf.complete && sf.naturalWidth > 0) ctx.drawImage(sf, 0, 0, AW, VB);
+  else { ctx.fillStyle = "#000"; ctx.fillRect(0, 0, AW, VB); }
 
   if (state) {
-    // lazers (Lazer::display): colored line, tip at endpoint
-    ctx.lineWidth = 3;
+    // lazers (Lazer::display): 1px colored line, tip at endpoint; color is
+    // read at draw time from the ship's shared color — recolors in flight
+    ctx.lineWidth = 1;
     for (const l of state.L) {
       ctx.strokeStyle = `rgb(${l.c[0]},${l.c[1]},${l.c[2]})`;
       ctx.beginPath();
@@ -166,15 +317,24 @@ function draw() {
     drawShip(state.a, state.a.skin === "green" ? GREEN_A : SHIPS.A);
     drawShip(state.b, SHIPS.B);
   }
+  drawButtons();
 
-  // HUD
-  const mine = state && me !== "A" && me !== "B" ? null : state && state[me.toLowerCase()];
-  const hull = mine ? mine.hull : "–";
+  // HUD + mode indicator
+  const tag = mode === "hotseat"
+    ? "HOTSEAT — one keyboard flies BOTH ships"
+    : "remote 1v1";
+  const hullTxt = state
+    ? (mode === "hotseat" ? `A:${state.a.hull} B:${state.b.hull}`
+                          : (me === "A" || me === "B") ? state[me.toLowerCase()].hull : "–")
+    : "–";
   hud.textContent =
-    `You are Ship ${me || "?"}   hull: ${hull}\n` +
-    `rotate: ${me === "B" ? "4/6 or l/'" : "a/d"}   thrust: ${me === "B" ? "5 or ;" : "s"}   ` +
-    `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}   restart: r` +
-    (me === "A" ? "   skin: g" : "");
+    `You are Ship ${me || "?"}   [${tag}]   hull: ${hullTxt}\n` +
+    (mode === "hotseat"
+      ? "A: a/d s w x   B: 4/6 5 8 2 (or l/' ; p /)\n"
+      : `rotate: ${me === "B" ? "4/6 or l/'" : "a/d"}   thrust: ${me === "B" ? "5 or ;" : "s"}   ` +
+        `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}\n`) +
+    `r restart   m colors   ` + (me === "A" || mode === "hotseat" ? `g green skin (A)   ` : "") +
+    `bottom buttons = Ship A mouse controls`;
 
   requestAnimationFrame(draw);
 }
