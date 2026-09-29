@@ -17,7 +17,8 @@ fit();
 /* ---- assets (served from the original game's bin/data) ---- */
 const IMG = {};
 for (const name of ["starfield-1500.jpg", "starship1.png", "starship_thrust.png",
-                    "starship_purple.png", "starship_purple_thrust.png", "flame.png"]) {
+                    "starship_purple.png", "starship_purple_thrust.png",
+                    "bird_of_prey.png", "flame.png"]) {
   const im = new Image();
   im.src = "/assets/" + name;
   IMG[name] = im;
@@ -95,6 +96,7 @@ document.addEventListener("keydown", (ev) => {
   else if (FIRE_KEYS.has(k)) sendInput({ fire: true });
   else if (SHIELD_KEYS.has(k)) sendInput({ shield: true });
   else if (k === "r") sendInput({ restart: true });
+  else if (k === "g") sendInput({ green: true }); // one-shot; server applies it to Ship A only
 });
 document.addEventListener("keyup", (ev) => {
   const k = ev.key.toLowerCase();
@@ -111,6 +113,9 @@ const SHIPS = {
   A: { body: "starship1.png", thrust: "starship_thrust.png" },
   B: { body: "starship_purple.png", thrust: "starship_purple_thrust.png" },
 };
+// green skin: BOTH frames load the same file — there is no green thrust art
+// (faithful to the C++ 'g' handler, which loads SHIP_GREEN_IMAGE into both)
+const GREEN_A = { body: "bird_of_prey.png", thrust: "bird_of_prey.png" };
 
 function drawShip(s, files) {
   // red "in trouble" halo (Ship::display, strength <= 1)
@@ -158,7 +163,7 @@ function draw() {
       ctx.lineTo(l.x2, l.y2);
       ctx.stroke();
     }
-    drawShip(state.a, SHIPS.A);
+    drawShip(state.a, state.a.skin === "green" ? GREEN_A : SHIPS.A);
     drawShip(state.b, SHIPS.B);
   }
 
@@ -168,7 +173,8 @@ function draw() {
   hud.textContent =
     `You are Ship ${me || "?"}   hull: ${hull}\n` +
     `rotate: ${me === "B" ? "4/6 or l/'" : "a/d"}   thrust: ${me === "B" ? "5 or ;" : "s"}   ` +
-    `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}   restart: r`;
+    `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}   restart: r` +
+    (me === "A" ? "   skin: g" : "");
 
   requestAnimationFrame(draw);
 }

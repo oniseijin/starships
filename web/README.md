@@ -29,6 +29,7 @@ hosts. No accounts, no installs on the client side — just a browser.
 | fire | `w` or `8` or `p` |
 | shield | `x` or `2` or `/` |
 | restart | `r` |
+| green skin | `g` — Ship A only: switches to the green Bird-of-Prey (one-way, survives restart) |
 
 Same rules as the original: 5 hull each (never recharges), shield absorbs
 hits but decays while up / recharges while down, momentum physics with
@@ -47,6 +48,11 @@ screen wrap, 10+1 live lazers max per ship, self-hit grace of 20 frames.
 Faithful quirks kept: `lazers.size() <= MAX_LAZERS` off-by-one (11 max),
 lazer lifetime 650 frames, ships spawn overlapping at centre, restart keeps
 lazers/shield state, hull<=1 draws the red ring, shield absorbs silently.
+The green skin faithfully mirrors the C++ `g` handler: there is no dedicated
+green thrust frame (thrusting draws the identical bird_of_prey sprite) and
+there is no switch-back — pressing `g` again just reloads the same texture.
+It survives `r` (restart re-renders from the ship's base image) and only a
+fresh server launch starts everyone unskinned.
 
 Why not an Emscripten port of the oF app? It would still have no networking
 (the original is two players on one keyboard), and every rule needed for a

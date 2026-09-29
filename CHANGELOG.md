@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## [0.1.1] — 2026-09-29
+
+* `web/`: green-ship port — `g` switches Ship A to the green Bird-of-Prey
+  skin (`bin/data/bird_of_prey.png` served as both the idle and thrust
+  frame; there is no green thrust art, faithful to the C++ `g` handler).
+  Ship A only: input from Ship B's connection or a spectator is ignored.
+  One-way (no switch-back), survives `r` restart, resets on a fresh server
+  launch; the simulation is untouched (cosmetic state only, drawn at the
+  same 25×40 size).
+* `web/test_server.py`: web tests preserved for the first time (stdlib
+  unittest, fake-socket WebSocket handler exercise, no network): green
+  applies from Ship A's connection and appears in snapshots, g from Ship B
+  / spectator is ignored, restart preserves the skin, a fresh server starts
+  unskinned.
+
 ## [0.1.0] — 2026-09-29 arm64 revival
 
 * Native arm64 (Apple Silicon) build against openFrameworks 0.12.1 — zero

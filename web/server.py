@@ -72,12 +72,22 @@ class Ship:
         self.shield_enabled = True
         self.lazers = []
         self.color = color
+        self.skin = "normal"  # 'g' flips Ship A to bird_of_prey (one-way)
         self.events = []  # drained into the broadcast events list
 
     def restart(self):
+        # skin survives: ofApp::restart() re-renders from baseImage
         self.hull = START_HULL
         self.active = True
         self.thrust_on = False
+
+    def set_green(self):
+        # ofApp.cpp keyPressed('g'): baseImage = SHIP_GREEN_IMAGE and BOTH the
+        # idle and thrust textures load that SAME file (no green thrust art —
+        # thrusting draws the identical sprite). Idempotent and one-way:
+        # pressing g again just reloads the same texture; only a fresh launch
+        # starts unskinned.
+        self.skin = "green"
 
     def update(self):
         # physics (Ship::update)
@@ -240,7 +250,8 @@ class Game:
     @staticmethod
     def _blank_input():
         return {"left": False, "right": False, "thrust": False,
-                "fire": False, "shield": False, "restart": False}
+                "fire": False, "shield": False, "restart": False,
+                "green": False}
 
     def apply_input(self, slot, msg):
         cur = self.pending[slot]
@@ -250,6 +261,10 @@ class Game:
         for k in ("fire", "shield", "restart"):  # edge-triggered actions
             if msg.get(k):
                 cur[k] = True
+        if slot == "a" and msg.get("green"):
+            # 'g' is Ship A only, and only from the connection that owns
+            # Ship A (spectators / Ship B pressing g do nothing)
+            cur["green"] = True
 
     def tick(self):
         self.frame += 1
@@ -276,6 +291,9 @@ class Game:
             if inp["restart"]:
                 ship.restart()
                 inp["restart"] = False
+            if inp["green"]:
+                ship.set_green()
+                inp["green"] = False
         if self.frame % HALF_ACCEL_EVERY == 0:
             self.a.half_accel()
             self.b.half_accel()
@@ -294,6 +312,7 @@ class Game:
                 "hull": s.hull, "active": s.active, "th": s.thrust_on,
                 "sh": s.shield_on and s.shield_enabled,
                 "shStr": round(s.shield_strength, 2),
+                "skin": s.skin,
             }
 
         return json.dumps({
@@ -425,7 +444,7 @@ async def main():
         print(f"   this Mac : http://localhost:{port}")
         print(f"   LAN      : http://{ip}:{port}   <-- open on both machines")
         print(f"   ws       : ws://{ip}:{port + 1}")
-        print("   first tab = Ship A (a/d/s/w/x), second = Ship B (4/6/5/8/2 or l/'/;/p//)")
+        print("   first tab = Ship A (a/d/s/w/x, g = green skin), second = Ship B (4/6/5/8/2 or l/'/;/p//)")
         print("=" * 62)
 
         tick_rate = 1 / 60.0
