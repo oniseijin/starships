@@ -5,3 +5,8 @@ bin/*.app
 build
 __pycache__
 *.pyc
+obj/
+Starships.xcodeproj/project.xcworkspace/xcuserdata/
+.DS_Store
+web/.venv/
+screenshots/.DS_Store
