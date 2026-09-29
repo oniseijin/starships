@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [0.1.4] — 2026-09-30
+
+* `web/`: `h` toggles the HUD legend (one-shot, repeat-guarded like
+  `m`/`g`/`r`; works in hotseat and remote; `h` is unused by any ship, so
+  game input is untouched). When hidden, the same corner keeps a small
+  faded `h = help` hint (opacity 0.35, 11px) so the legend is always
+  discoverable — never fully invisible. The legend text now lists the key
+  (`r restart   m colors   h hud …`). Per-browser preference persisted in
+  localStorage (default = shown). Pure client toggle — no server or
+  wire-protocol changes (`server.py` untouched; test suite green).
+
 ## [0.1.2] — 2026-09-30
 
 * `web/`: hotseat mode — a single connected browser is the couch game (one

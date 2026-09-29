@@ -1,6 +1,8 @@
 /* Starships web 1v1 client — renderer + input. The server is authoritative.
    v0.1.2: hotseat/remote modes, `m` lazer-color menu, C++ Ship A mouse-button
-   strip, OS key-repeat fire/shield, 1500x800 arena + 100px control strip. */
+   strip, OS key-repeat fire/shield, 1500x800 arena + 100px control strip.
+   v0.1.4: `h` toggles the HUD legend (faded `h = help` hint stays when
+   hidden; per-browser pref in localStorage). */
 "use strict";
 
 const AW = 1500, AH = 900;  // C++ window (Sizes.h MAX_WIDTH/MAX_HEIGHT)
@@ -148,11 +150,25 @@ document.addEventListener("keydown", (ev) => {
   // HOLDING shield flickers on/off — no repeat guard here on purpose.
   if (FIRE_KEYS[k]) { sendAction("fire", FIRE_KEYS[k]); return; }
   if (SHIELD_KEYS[k]) { sendAction("shield", SHIELD_KEYS[k]); return; }
-  if (ev.repeat) return; // one-shot guard: r/g/m must not machine-gun
+  if (ev.repeat) return; // one-shot guard: r/g/m/h must not machine-gun
   if (k === "r") send({ t: "input", restart: true });          // global
   else if (k === "g") send({ t: "input", ship: "a", green: true }); // Ship A only
   else if (k === "m") toggleMenu();
+  else if (k === "h") { hudVisible = !hudVisible; applyHudPref(); }
 });
+
+/* ---- HUD legend visibility (`h` toggle, v0.1.4) ----
+   Pure client toggle: hides the top-corner legend for clean gameplay and
+   screenshots; a faded `h = help` hint stays in the same corner so the
+   legend is always discoverable. Per-browser preference persisted in
+   localStorage (default = shown); try/catch for sandboxed contexts. */
+let hudVisible = true;
+try { hudVisible = localStorage.getItem("starships-hud") !== "off"; } catch (e) {}
+function applyHudPref() {
+  hud.classList.toggle("dim", !hudVisible);
+  try { localStorage.setItem("starships-hud", hudVisible ? "on" : "off"); } catch (e) {}
+}
+applyHudPref();
 document.addEventListener("keyup", (ev) => {
   const km = KEYSET[ev.key.toLowerCase()];
   if (km) {
@@ -319,7 +335,8 @@ function draw() {
   }
   drawButtons();
 
-  // HUD + mode indicator
+  // HUD legend (hidden state shows the faded `h = help` hint instead —
+  // the .dim class is applied by applyHudPref(), never fully invisible)
   const tag = mode === "hotseat"
     ? "HOTSEAT — one keyboard flies BOTH ships"
     : "remote 1v1";
@@ -327,14 +344,15 @@ function draw() {
     ? (mode === "hotseat" ? `A:${state.a.hull} B:${state.b.hull}`
                           : (me === "A" || me === "B") ? state[me.toLowerCase()].hull : "–")
     : "–";
-  hud.textContent =
+  const legend =
     `You are Ship ${me || "?"}   [${tag}]   hull: ${hullTxt}\n` +
     (mode === "hotseat"
       ? "A: a/d s w x   B: 4/6 5 8 2 (or l/' ; p /)\n"
       : `rotate: ${me === "B" ? "4/6 or l/'" : "a/d"}   thrust: ${me === "B" ? "5 or ;" : "s"}   ` +
         `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}\n`) +
-    `r restart   m colors   ` + (me === "A" || mode === "hotseat" ? `g green skin (A)   ` : "") +
+    `r restart   m colors   h hud   ` + (me === "A" || mode === "hotseat" ? `g green skin (A)   ` : "") +
     `bottom buttons = Ship A mouse controls`;
+  hud.textContent = hudVisible ? legend : "h = help";
 
   requestAnimationFrame(draw);
 }

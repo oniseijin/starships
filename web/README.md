@@ -16,7 +16,8 @@ hosts. No accounts, no installs on the client side — just a browser.
    WebSocket on 47778).
 
 2. Open that URL in a browser — see **Modes** below for who flies what.
-3. Fly, shoot, shield. `r` restarts (both ships), `m` opens the color menu.
+3. Fly, shoot, shield. `r` restarts (both ships), `m` opens the color menu,
+   `h` hides the HUD legend (a faded `h = help` stays in the corner).
 
 ## Modes (server-arbitrated, mirrors the C++ one-keyboard couch setup)
 
@@ -45,6 +46,7 @@ client — the C++ mouse semantics.
 | restart | `r` — global: resets BOTH ships (colors/skins survive) |
 | green skin | `g` — Ship A only: switches to the green Bird-of-Prey (one-way, survives restart) |
 | color menu | `m` — toggles the lazer-color panel (see below) |
+| HUD toggle | `h` — hides the top-corner legend for clean gameplay/screenshots (hotseat + remote); a small faded `h = help` hint remains in the corner so the legend is always findable. Per-browser preference, survives reloads (localStorage; default = shown). |
 
 In remote mode either keyset works for YOUR ship (both keysets are OR-ed,
 as wired in `ofApp::keyPressed`).
