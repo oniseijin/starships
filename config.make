@@ -6,9 +6,16 @@
 ################################################################################
 # OF ROOT
 #   The location of your root openFrameworks installation
-#       (default) OF_ROOT = ../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release 
+#       (default) OF_ROOT = ../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release
 ################################################################################
 # OF_ROOT = ../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../../.local/lib/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release/../workspace/of_v0.10.1_osx_release
+#
+# arm64 Apple Silicon (2026 revival): oF 0.12.1 is the first release with
+# proper arm64 support. NOTE: it must NOT live under a dot-directory such as
+# ~/.local/lib — the oF makefiles' hidden-dir filter (`grep -v "/\.[^\.]"`)
+# matches the "/.local" path component and excludes ALL core sources, which
+# breaks the build. See BUILD-arm64.md.
+OF_ROOT = $(HOME)/lib/of_v0.12.1_osx_release
 
 ################################################################################
 # PROJECT ROOT
