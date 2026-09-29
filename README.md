@@ -39,6 +39,6 @@ End of life will be declared when basic colors, sounds, 2 player features enable
 
 == 2026 Update ==
 
-I asked an AI coding tool to take a look at this project to re-compile for arm64, and wouldn't it be nice if there was a web/lan version - it then went ahead and built it and then turned around and said it was a trivial thing - a shoot layers from a couch kind of thing. I am both impressed and insulted. 
+I asked an AI coding tool to take a look at this project to re-compile for arm64, and wouldn't it be nice if there was a web/lan version - it then went ahead and built it and then turned around and said it was a trivial thing - a shoot lazers from a couch kind of thing. I am both impressed and insulted. 
 
 So, C++ me, web - well, thank Z.ai for that one. 
