@@ -17,6 +17,9 @@ void ofApp::setup(){
     }
     verticalBounds = h - controls;
     starField.load("starfield-1500.jpg");
+    ofLogNotice("Starships") << "starfield allocated=" << starField.isAllocated()
+        << " texAllocated=" << starField.getTexture().isAllocated()
+        << " dataPath=" << ofToDataPath("", true);
     backgroundRipple = new Ripple(&starField);
     //244, 187, 255,
     //127,229,238
