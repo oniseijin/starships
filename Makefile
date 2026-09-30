@@ -11,3 +11,8 @@ endif
 
 # call the project makefile!
 include $(OF_ROOT)/libs/openFrameworksCompiled/project/makefileCommon/compile.project.mk
+
+# embed assets so the .app is self-contained (runs from /Applications)
+after:
+	rm -rf bin/Starships.app/Contents/Resources/data
+	cp -R bin/data bin/Starships.app/Contents/Resources/data
