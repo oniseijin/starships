@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## [0.1.5] — 2026-09-30
+
+* CI/CD: GitHub Actions release path for the native arm64 app —
+  `.github/workflows/release.yml` builds `Starships.app` on a macOS arm64
+  runner on every `v*` tag push (openFrameworks 0.12.1 installed with the
+  exact BUILD-arm64.md recipe at `~/lib`, which `config.make`'s `OF_ROOT`
+  already points at; `make -j` + the `make after` data/icon embed), zips it
+  (`Starships-<tag>-arm64.zip`) and attaches it to the GitHub Release
+  (release body documents the unsigned-build Gatekeeper step). The ~1 GB oF
+  download + core-library build are cached with `actions/cache` (keyed on
+  the oF version; the cache keeps the extracted tree INCLUDING the compiled
+  core, so warm runs skip both). `.github/workflows/ci.yml` runs the same
+  build on every push to master / PR as a compile sanity check and
+  smoke-checks the bundle (executable + embedded data + icon present).
+* `web/`: touch controls — on coarse-pointer (touch) clients, on-screen
+  thumb pads appear in the bottom corners (56 px targets) once a ship is
+  assigned: Ship A's client gets the v0.1.2 C++ RectButton strip extended
+  to thumb size (`◀ / THR / ▶` held, `FIRE` / `SHLD` press-once — the SAME
+  `via:"button"` messages, so they drive Ship A from any client in any
+  mode); Ship B's client (B has no strip in the C++ window) gets its own
+  `◀ / THR / ▶` + `FIRE` / `SHLD` set on the B keyset semantics; both get
+  an `RST` pad (restart, since `r` needs a keyboard). Pads are independent
+  buttons with pointer capture: multi-touch works (thrust + steer
+  concurrently), held pads light up, and backgrounding the browser
+  releases everything (mirroring the keyboard blur handler). Client-only —
+  `server.py` and the wire protocol untouched; desktop clients render
+  nothing (gate = `pointer: coarse`). Verification: a DOM-level harness
+  drove the real `client.js` with a stubbed DOM (14 checks: pad layout,
+  exact wire frames per pad, multi-touch hold, blur release, desktop
+  renders nothing) plus a live replay of the pad frames against a
+  throwaway server instance — thrust/fire/restart visible in snapshots;
+  `test_server.py` green untouched (34 tests).
+
 ## [0.1.4] — 2026-09-30
 
 * `web/`: `h` toggles the HUD legend (one-shot, repeat-guarded like
