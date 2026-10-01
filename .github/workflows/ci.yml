@@ -1,0 +1,48 @@
+# CI sanity — same arm64 build as the release workflow, without packaging:
+# proves master (and PRs) still compile against openFrameworks 0.12.1 with
+# the BUILD-arm64.md recipe. Shares the release workflow's oF cache key, so
+# whichever runs first pays the ~1 GB download + core build once.
+
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-arm64:
+    name: arm64 build (sanity)
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Cache openFrameworks 0.12.1 (extracted tree incl. compiled core)
+        id: ofcache
+        uses: actions/cache@v4
+        with:
+          path: ~/lib/of_v0.12.1_osx_release
+          key: of_v0.12.1_osx_release-arm64-v1
+
+      - name: Install openFrameworks 0.12.1 (BUILD-arm64.md recipe)
+        if: steps.ofcache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/lib && cd ~/lib
+          curl -fLO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
+          tar xzf of_v0.12.1_osx_release.tar.gz
+          rm of_v0.12.1_osx_release.tar.gz
+
+      - name: Build (Release, all cores)
+        run: make -j"$(sysctl -n hw.ncpu)"
+
+      - name: Embed data + icon (self-contained app)
+        run: make after
+
+      - name: Smoke-check the bundle
+        run: |
+          test -x bin/Starships.app/Contents/MacOS/Starships
+          test -d bin/Starships.app/Contents/Resources/data
+          test -f bin/Starships.app/Contents/Resources/of.icns
+          echo "bundle OK: executable + embedded data + icon present"
