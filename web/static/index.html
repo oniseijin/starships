@@ -6,7 +6,9 @@
 <title>Starships — web 1v1</title>
 <style>
   html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
-  #game { display: block; margin: auto; image-rendering: auto; }
+  /* touch-action: manipulation — phones must double-tap-tap the canvas
+     (the tiny C++ strip buttons) without triggering a page zoom */
+  #game { display: block; margin: auto; image-rendering: auto; touch-action: manipulation; }
   #hud {
     position: fixed; top: 8px; left: 12px; color: #cfe; z-index: 2;
     font: 14px/1.45 ui-monospace, Menlo, monospace; text-shadow: 0 1px 2px #000;
@@ -34,6 +36,25 @@
     background: none; cursor: pointer;
   }
   .hidden { display: none !important; }
+  /* v0.1.5 touch pads — populated by client.js ONLY on coarse-pointer
+     (touch) clients; thumb-reachable bottom corners, ≥56px targets.
+     Desktop (fine-pointer) clients render nothing here. */
+  #touch .pad {
+    position: fixed; bottom: 14px; display: flex; gap: 10px; z-index: 2;
+    pointer-events: none; /* the gaps fall through to the canvas */
+  }
+  #touch .pad.left  { left: 14px; }
+  #touch .pad.right { right: 14px; }
+  #touch button {
+    pointer-events: auto;
+    min-width: 56px; min-height: 56px; padding: 0 14px;
+    border-radius: 12px; border: 1px solid #567;
+    background: rgba(0,0,24,0.55); color: #cfe;
+    font: bold 16px ui-monospace, Menlo, monospace;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #touch button.on { background: rgba(70,100,140,0.75); }
 </style>
 </head>
 <body>
@@ -44,6 +65,7 @@
   <label>bLazer <input type="color" id="colB" value="#ffcccc"></label>
 </div>
 <div id="overlay">connecting…</div>
+<div id="touch"></div>
 <canvas id="game" width="1500" height="900"></canvas>
 <script src="/client.js"></script>
 </body>

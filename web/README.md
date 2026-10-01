@@ -16,6 +16,8 @@ hosts. No accounts, no installs on the client side — just a browser.
    WebSocket on 47778).
 
 2. Open that URL in a browser — see **Modes** below for who flies what.
+   Phones join the same URL: touch pads appear automatically (see
+   **Touch controls** below).
 3. Fly, shoot, shield. `r` restarts (both ships), `m` opens the color menu,
    `h` hides the HUD legend (a faded `h = help` stays in the corner).
 
@@ -34,6 +36,33 @@ hosts. No accounts, no installs on the client side — just a browser.
 
 The Ship A mouse buttons (below) always drive Ship A in any mode, from any
 client — the C++ mouse semantics.
+
+## Touch controls (phones/tablets)
+
+A phone joins the SAME LAN URL; nothing to enable — when the client's
+primary input is a touch screen (`pointer: coarse`), on-screen thumb pads
+appear in the bottom corners (56 px targets) and the HUD hint switches to
+`on-screen pads: bottom corners`. Which pads you get:
+
+- **Ship A's client** (including the hotseat single-client): the C++ button
+  strip extended to thumb size — `◀ / THR / ▶` held pads plus `FIRE` /
+  `SHLD` press-once pads. They send the exact same `via:"button"` messages
+  as the canvas strip, so they drive Ship A from any client in any mode.
+- **Ship B's client** (Ship B has no strip in the C++ window): its own
+  `◀ / THR / ▶` + `FIRE` / `SHLD` set using B's keyset semantics — held
+  rotate/thrust, per-press fire/shield.
+- **`RST`** (both): an on-screen restart, since `r` needs a keyboard.
+
+Pads are independent buttons with pointer capture, so multi-touch works —
+hold thrust and steer at the same time, or steer while firing. Held pads
+light up; backgrounding the browser releases everything (same rule as the
+keyboard). The canvas strip stays faithful to the C++ 19 px rendering; the
+pads are the touch-sized layer above it.
+
+Client-only change: `server.py` and the wire protocol are untouched, so
+desktop keyboard/mouse clients behave exactly as before. Note the pads are
+DOM-level UI — verified manually on a phone (protocol itself is covered by
+the test suite); `test_server.py` stays green untouched.
 
 ## Controls
 

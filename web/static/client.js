@@ -2,7 +2,10 @@
    v0.1.2: hotseat/remote modes, `m` lazer-color menu, C++ Ship A mouse-button
    strip, OS key-repeat fire/shield, 1500x800 arena + 100px control strip.
    v0.1.4: `h` toggles the HUD legend (faded `h = help` hint stays when
-   hidden; per-browser pref in localStorage). */
+   hidden; per-browser pref in localStorage).
+   v0.1.5: touch controls — on-screen thumb pads appear on coarse-pointer
+   (touch) clients (Ship A: the C++ button strip, thumb-sized; Ship B: its
+   own keyset pads). Client-only; wire protocol unchanged. */
 "use strict";
 
 const AW = 1500, AH = 900;  // C++ window (Sizes.h MAX_WIDTH/MAX_HEIGHT)
@@ -72,6 +75,7 @@ ws.onmessage = (ev) => {
     mode = msg.mode || "remote";
     if (me === "A" || me === "B") overlay.classList.add("hidden");
     else overlay.textContent = "spectating (two players already connected)";
+    buildTouchPads(); // touch clients get their pads once a ship is assigned
   } else if (msg.t === "s") {
     state = msg;
     setMode(msg.mode);
@@ -236,6 +240,98 @@ canvas.addEventListener("pointerleave", () => {
   releaseButtons();
 });
 
+/* ---- v0.1.5 touch controls (client-only; server protocol unchanged) ----
+   A phone has no keyboard, so on coarse-pointer (touch) clients render
+   thumb pads in the bottom corners (56px targets):
+   - Ship A's client (incl. the hotseat single-client): the v0.1.2 C++
+     RectButton strip extended to thumb size — the SAME wire messages
+     (via:"button"), so these pads drive Ship A from any client in any
+     mode, exactly like the canvas strip beneath them.
+   - Ship B's client gets its OWN set (B has no strip in the C++ window):
+     held rotate/thrust through the B keyset state, fire/shield as the
+     same counted per-press actions as B's keys.
+   - Multi-touch: every pad is an independent <button> with pointer
+     capture, so thrust+rotate (or steer+fire) run concurrently. */
+const TOUCH = window.matchMedia
+  && window.matchMedia("(pointer: coarse)").matches;
+const touchUI = document.getElementById("touch");
+
+function makePadButton(label, onPress, onRelease) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = label;
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    // capture: a held pad keeps working when the thumb drifts off it
+    b.setPointerCapture(e.pointerId);
+    b.classList.add("on");
+    if (onPress) onPress();
+  });
+  const release = () => {
+    if (!b.classList.contains("on")) return;
+    b.classList.remove("on");
+    if (onRelease) onRelease();
+  };
+  b.addEventListener("pointerup", release);
+  b.addEventListener("pointercancel", release);
+  b.addEventListener("contextmenu", (e) => e.preventDefault()); // long-press
+  b._release = release;
+  return b;
+}
+
+function buildTouchPads() {
+  if (!TOUCH || !(me === "A" || me === "B")) return; // spectators: nothing
+  const left = document.createElement("div");
+  left.className = "pad left";
+  const right = document.createElement("div");
+  right.className = "pad right";
+  if (me === "A") {
+    // C++ button semantics, thumb-sized: held steer/thrust on the button
+    // channel, fire/shield press-once like the canvas RectButtons.
+    left.append(
+      makePadButton("◀", () => { btnHeld.left = true; sendBtn(); },
+                         () => { btnHeld.left = false; sendBtn(); }),
+      makePadButton("THR", () => { btnHeld.thrust = true; sendBtn(); },
+                           () => { btnHeld.thrust = false; sendBtn(); }),
+      makePadButton("▶", () => { btnHeld.right = true; sendBtn(); },
+                         () => { btnHeld.right = false; sendBtn(); }),
+    );
+    right.append(
+      makePadButton("FIRE",
+        () => send({ t: "input", ship: "a", via: "button", fire: true })),
+      makePadButton("SHLD",
+        () => send({ t: "input", ship: "a", via: "button", shield: true })),
+    );
+  } else {
+    // Ship B's own pads (the B keyset): held rotate/thrust through
+    // held.b — sendHeld("b") tags ship:"b" in hotseat and sends the merged
+    // state in remote; the server routes either to your own ship.
+    left.append(
+      makePadButton("◀", () => { held.b.left = true; sendHeld("b"); },
+                         () => { held.b.left = false; sendHeld("b"); }),
+      makePadButton("THR", () => { held.b.thrust = true; sendHeld("b"); },
+                           () => { held.b.thrust = false; sendHeld("b"); }),
+      makePadButton("▶", () => { held.b.right = true; sendHeld("b"); },
+                         () => { held.b.right = false; sendHeld("b"); }),
+    );
+    right.append(
+      makePadButton("FIRE", () => sendAction("fire", "b")),
+      makePadButton("SHLD", () => sendAction("shield", "b")),
+    );
+  }
+  // `r` is a keyboard key — touch clients need their own restart
+  right.append(makePadButton("RST", () => send({ t: "input", restart: true })));
+  touchUI.append(left, right);
+}
+
+window.addEventListener("blur", () => {
+  // visual only — the blur handler above already released the wire state
+  // (btnHeld + held) and sent the releases
+  for (const b of touchUI.querySelectorAll("button.on")) {
+    b.classList.remove("on");
+  }
+});
+
 /* ---- `m` lazer-color menu (C++ ofxPanel "menu": aLazer + bLazer) ----
    Mouse/touch only; the game keeps running and ALL keys still steer —
    the panel swallows no keyboard. */
@@ -344,6 +440,9 @@ function draw() {
     ? (mode === "hotseat" ? `A:${state.a.hull} B:${state.b.hull}`
                           : (me === "A" || me === "B") ? state[me.toLowerCase()].hull : "–")
     : "–";
+  const controlsHint = (TOUCH && (me === "A" || me === "B"))
+    ? "on-screen pads: bottom corners"
+    : "bottom buttons = Ship A mouse controls";
   const legend =
     `You are Ship ${me || "?"}   [${tag}]   hull: ${hullTxt}\n` +
     (mode === "hotseat"
@@ -351,7 +450,7 @@ function draw() {
       : `rotate: ${me === "B" ? "4/6 or l/'" : "a/d"}   thrust: ${me === "B" ? "5 or ;" : "s"}   ` +
         `fire: ${me === "B" ? "8 or p" : "w"}   shield: ${me === "B" ? "2 or /" : "x"}\n`) +
     `r restart   m colors   h hud   ` + (me === "A" || mode === "hotseat" ? `g green skin (A)   ` : "") +
-    `bottom buttons = Ship A mouse controls`;
+    controlsHint;
   hud.textContent = hudVisible ? legend : "h = help";
 
   requestAnimationFrame(draw);
