@@ -17,3 +17,4 @@ after:
 	rm -rf bin/Starships.app/Contents/Resources/data
 	cp -R bin/data bin/Starships.app/Contents/Resources/data
 	cp Starships.icns bin/Starships.app/Contents/Resources/of.icns
+	plutil -replace CFBundleIconFile -string of.icns bin/Starships.app/Contents/Info.plist
