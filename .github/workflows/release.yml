@@ -60,10 +60,26 @@ jobs:
           # Finder metadata that unzip-on-another-Mac needs to just run.
           ditto -c -k --keepParent Starships.app "Starships-${GITHUB_REF_NAME}-arm64.zip"
 
+      - name: Build the DMG (drag-to-Applications)
+        run: |
+          cd bin
+          # Symlinked /Applications target folder + the app, presented in
+          # a simple window; ULMO (no compression, already-zipped assets).
+          mkdir -p dmg-src
+          ln -hfs /Applications dmg-src/Applications
+          cp -R Starships.app dmg-src/Starships.app
+          hdiutil create -volname "Starships" \
+            -srcfolder dmg-src \
+            -ov -format UDZO \
+            "Starships-${GITHUB_REF_NAME}-arm64.dmg"
+          rm -rf dmg-src
+
       - name: Attach to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: bin/Starships-${{ github.ref_name }}-arm64.zip
+          files: |
+            bin/Starships-${{ github.ref_name }}-arm64.zip
+            bin/Starships-${{ github.ref_name }}-arm64.dmg
           body: |
             Native macOS arm64 build (openFrameworks 0.12.1) of the tagged
             version, built on a GitHub macOS arm64 runner with the

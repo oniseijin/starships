@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [0.1.6] - 2026-10-02
+
+- Release builds now ship a DMG (drag-to-Applications) alongside the zip.
+- App icon fix: CFBundleIconFile substituted (oF template left literal
+  ${ICON}) - the duel icon now displays; after-hook makes it permanent.
+
+
 ## [0.1.5] — 2026-09-30
 
 * CI/CD: GitHub Actions release path for the native arm64 app —
