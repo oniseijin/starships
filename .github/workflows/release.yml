@@ -23,14 +23,15 @@
 #   its msys2 platform by itself; config.make's UNAME-guard points OF_ROOT
 #   at /c/of_v0.12.1_msys2_mingw64_release.
 # - oF zip: of_v0.12.1_msys2_mingw64_release.zip (openFrameworks 0.12.1
-#   release assets). Toolchain/libs via the oF-shipped
-#   scripts/msys2/install_dependencies.sh — pacman packages: unzip, make
-#   (msys) + mingw-w64-x86_64-{gcc,assimp,cairo,curl,FreeImage,glew,glfw,
-#   glm,fmt,zlib,brotli,libpng,harfbuzz,libsndfile,libusb,libxml2,mpg123,
-#   nlohmann-json,openal,opencv,pkgconf,pugixml,rtaudio,uriparser,utf8cpp}.
-#   That step runs EVERY run (pacman state is not cached — the cached oF
-#   tree alone is not enough). ntldd-git is installed on top because
-#   `make copy_dlls` needs ntldd and the oF script leaves it out.
+#   release assets). Toolchain/libs = the oF install_dependencies.sh list
+#   (unzip, make + mingw-w64-x86_64-{gcc,assimp,cairo,curl,freeimage,glew,
+#   glfw,glm,fmt,zlib,brotli,libpng,harfbuzz,libsndfile,libusb,libxml2,
+#   mpg123,nlohmann-json,openal,opencv,pkgconf,pugixml,rtaudio,uriparser,
+#   utf8cpp}), installed by an explicit pacman step: the oF script's
+#   "FreeImage" casing no longer resolves (target not found, hit for real
+#   on v0.1.7). That step runs EVERY run (pacman state is not cached — the
+#   cached oF tree alone is not enough). ntldd-git is installed on top
+#   because `make copy_dlls` needs ntldd and the oF list leaves it out.
 # - No `make after` here (macOS-only target; guarded Darwin-only in the
 #   Makefile). Windows output = bin/Starships.exe (APPNAME = checkout dir
 #   name) + bin/data next to it (oF default data path on Windows) + mingw
@@ -143,8 +144,25 @@ jobs:
           rm of_v0.12.1_msys2_mingw64_release.zip
 
       - name: Install oF msys2 dependencies (every run — pacman state not cached)
+        # The list from oF 0.12.1 scripts/msys2/install_dependencies.sh
+        # (unzip/make + MINGW_PACKAGE_PREFIX-prefixed libs), with ONE
+        # correction: the MSYS2 package is `freeimage` — the oF script's
+        # "FreeImage" casing no longer resolves in pacman ("target not
+        # found", hit for real on the v0.1.7 run). Plain `pacman -S`, not
+        # -Su: no surprise full-system upgrade mid-run.
         shell: msys2 {0}
-        run: /c/of_v0.12.1_msys2_mingw64_release/scripts/msys2/install_dependencies.sh --noconfirm
+        run: |
+          pacman -S --needed --noconfirm \
+            unzip make \
+            mingw-w64-x86_64-gcc \
+            mingw-w64-x86_64-assimp mingw-w64-x86_64-cairo mingw-w64-x86_64-curl \
+            mingw-w64-x86_64-freeimage mingw-w64-x86_64-glew mingw-w64-x86_64-glfw \
+            mingw-w64-x86_64-glm mingw-w64-x86_64-fmt mingw-w64-x86_64-zlib \
+            mingw-w64-x86_64-brotli mingw-w64-x86_64-libpng mingw-w64-x86_64-harfbuzz \
+            mingw-w64-x86_64-libsndfile mingw-w64-x86_64-libusb mingw-w64-x86_64-libxml2 \
+            mingw-w64-x86_64-mpg123 mingw-w64-x86_64-nlohmann-json mingw-w64-x86_64-openal \
+            mingw-w64-x86_64-opencv mingw-w64-x86_64-pkgconf mingw-w64-x86_64-pugixml \
+            mingw-w64-x86_64-rtaudio mingw-w64-x86_64-uriparser mingw-w64-x86_64-utf8cpp
 
       - name: Build (Release, all cores)
         shell: msys2 {0}
