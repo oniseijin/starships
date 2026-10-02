@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## [Unreleased]
+
+* Icon: size-appropriate art in ONE .icns. 16-128 px now use a "solo"
+  variant — one ship (starship1), upright, ~72% of canvas height on a
+  darkened starfield with a single cyan lazer streak behind the nacelles
+  — while 256-1024 px keep the detailed duel scene. At Dock/Finder small
+  sizes the old all-sizes duel collapsed into a gray/purple smear ("mop
+  with a purple brush"); the solo variant reads as a spaceship at 32 px.
+  Regenerable: `uv run --with pillow tools/make_icon.py` composes both
+  variants from `bin/data` assets (Pillow, master renders + LANCZOS
+  downscale, rounded-rect mask measured off the original art) and runs
+  `iconutil -c icns`. `--preview` writes a size grid to /tmp.
+
 ## [0.1.7] - 2026-10-01
 
 * Windows x64 release builds — the release workflow now also builds a
