@@ -1,18 +1,40 @@
-# Release builds — native macOS arm64 app (openFrameworks 0.12.1).
+# Release builds — native macOS arm64 app + Windows x64 exe (openFrameworks 0.12.1).
 #
-# Fires on any v* tag push: builds bin/Starships.app with the exact recipe
-# documented in BUILD-arm64.md, then attaches a zip to the GitHub Release.
+# Fires on any v* tag push. Two build jobs run in parallel; a final job
+# attaches ALL artifacts to the one GitHub Release (single softprops call —
+# no two-job release race).
 #
+# macOS (build-arm64):
 # - Runner: `macos-15` = Apple Silicon (arm64), the arch this repo targets.
 # - oF install path: `$(HOME)/lib/of_v0.12.1_osx_release` — exactly what
-#   config.make sets as OF_ROOT (`$(HOME)/lib/...`, NOT under `/.local` —
-#   the oF makefiles' hidden-dir filter excludes all core sources from any
-#   `/.` path component; see BUILD-arm64.md), so no build config changes
-#   are needed on CI. The cache holds the tarball-extracted tree INCLUDING
-#   the compiled oF core library (it lives inside OF_ROOT), so after the
-#   first run both the ~1 GB download and the core build are skipped.
+#   config.make sets as OF_ROOT (mac branch; NOT under `/.local` — the oF
+#   makefiles' hidden-dir filter excludes all core sources from any `/.`
+#   path component; see BUILD-arm64.md). The cache holds the extracted tree
+#   INCLUDING the compiled oF core library (it lives inside OF_ROOT), so
+#   after the first run both the ~1 GB download and the core build are
+#   skipped.
 # - `make after` is the project Makefile rule that embeds bin/data and the
 #   icon into the bundle (self-contained app — runs from /Applications).
+#
+# Windows (build-win64):
+# - Runner: windows-latest + msys2/setup-msys2@v2, MSYSTEM=MINGW64 — the
+#   flavor the oF docs recommend for 0.11.2+ (UCRT64/CLANG64 are
+#   "advanced users" territory). oF's makefileCommon maps uname MINGW* to
+#   its msys2 platform by itself; config.make's UNAME-guard points OF_ROOT
+#   at /c/of_v0.12.1_msys2_mingw64_release.
+# - oF zip: of_v0.12.1_msys2_mingw64_release.zip (openFrameworks 0.12.1
+#   release assets). Toolchain/libs via the oF-shipped
+#   scripts/msys2/install_dependencies.sh — pacman packages: unzip, make
+#   (msys) + mingw-w64-x86_64-{gcc,assimp,cairo,curl,FreeImage,glew,glfw,
+#   glm,fmt,zlib,brotli,libpng,harfbuzz,libsndfile,libusb,libxml2,mpg123,
+#   nlohmann-json,openal,opencv,pkgconf,pugixml,rtaudio,uriparser,utf8cpp}.
+#   That step runs EVERY run (pacman state is not cached — the cached oF
+#   tree alone is not enough). ntldd-git is installed on top because
+#   `make copy_dlls` needs ntldd and the oF script leaves it out.
+# - No `make after` here (macOS-only target; guarded Darwin-only in the
+#   Makefile). Windows output = bin/Starships.exe (APPNAME = checkout dir
+#   name) + bin/data next to it (oF default data path on Windows) + mingw
+#   runtime DLLs copied next to the exe by `make copy_dlls`.
 
 name: release
 
@@ -25,7 +47,7 @@ permissions:
 
 jobs:
   build-arm64:
-    name: arm64 release build
+    name: arm64 release build (macOS)
     runs-on: macos-15
     timeout-minutes: 60
     steps:
@@ -43,7 +65,7 @@ jobs:
         if: steps.ofcache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/lib && cd ~/lib
-          curl -fLO https://github.com/openframeworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
+          curl -fLO https://github.com/openFrameworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_osx_release.tar.gz
           tar xzf of_v0.12.1_osx_release.tar.gz
           rm of_v0.12.1_osx_release.tar.gz
 
@@ -74,23 +96,130 @@ jobs:
             "Starships-${GITHUB_REF_NAME}-arm64.dmg"
           rm -rf dmg-src
 
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: |
+            bin/Starships-${{ github.ref_name }}-arm64.zip
+            bin/Starships-${{ github.ref_name }}-arm64.dmg
+          if-no-files-found: error
+
+  build-win64:
+    name: win64 release build (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@v4
+
+      - name: Cache openFrameworks 0.12.1 msys2 (extracted tree incl. compiled core)
+        id: ofcache
+        uses: actions/cache@v4
+        with:
+          path: C:\of_v0.12.1_msys2_mingw64_release
+          key: of_v0.12.1_msys2_mingw64_release-x64-v1
+
+      - name: Set up MSYS2 MINGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          # The oF install step below runs install_dependencies.sh, which
+          # itself does a full `pacman -Su` — no extra update here.
+          update: false
+          # make: the build tool (needed every run). unzip: oF zip extraction
+          # (cache-miss runs). ntldd-git: `make copy_dlls` dependency (every
+          # run — deliberately NOT left to install_dependencies.sh, which
+          # omits it).
+          install: make unzip mingw-w64-x86_64-ntldd-git
+
+      - name: Install openFrameworks 0.12.1 msys2 (cache miss only)
+        if: steps.ofcache.outputs.cache-hit != 'true'
+        shell: msys2 {0}
+        run: |
+          cd /c
+          curl -fLO https://github.com/openFrameworks/openFrameworks/releases/download/0.12.1/of_v0.12.1_msys2_mingw64_release.zip
+          unzip -q of_v0.12.1_msys2_mingw64_release.zip
+          rm of_v0.12.1_msys2_mingw64_release.zip
+
+      - name: Install oF msys2 dependencies (every run — pacman state not cached)
+        shell: msys2 {0}
+        run: /c/of_v0.12.1_msys2_mingw64_release/scripts/msys2/install_dependencies.sh --noconfirm
+
+      - name: Build (Release, all cores)
+        shell: msys2 {0}
+        run: |
+          cd "$(cygpath "$GITHUB_WORKSPACE")"
+          make -j"$(nproc)"
+          test -f bin/Starships.exe
+
+      - name: Copy mingw runtime DLLs next to the exe
+        shell: msys2 {0}
+        run: |
+          cd "$(cygpath "$GITHUB_WORKSPACE")"
+          make copy_dlls
+
+      - name: Stage win64 package (exe + DLLs + data)
+        shell: msys2 {0}
+        run: |
+          cd "$(cygpath "$GITHUB_WORKSPACE")/bin"
+          rm -rf "Starships-${GITHUB_REF_NAME}-win64"
+          mkdir "Starships-${GITHUB_REF_NAME}-win64"
+          cp Starships.exe "Starships-${GITHUB_REF_NAME}-win64/"
+          ls ./*.dll >/dev/null 2>&1 || { echo "ERROR: no runtime DLLs in bin/ — copy_dlls copied nothing"; exit 1; }
+          cp ./*.dll "Starships-${GITHUB_REF_NAME}-win64/"
+          cp -r data "Starships-${GITHUB_REF_NAME}-win64/data"
+          echo "---- package contents ----"
+          ls -la "Starships-${GITHUB_REF_NAME}-win64"
+
+      - name: Zip the win64 package
+        shell: pwsh
+        run: Compress-Archive -Path "bin/Starships-${{ github.ref_name }}-win64" -DestinationPath "bin/Starships-${{ github.ref_name }}-win64.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: bin/Starships-${{ github.ref_name }}-win64.zip
+          if-no-files-found: error
+
+  release:
+    name: Attach artifacts to the GitHub Release
+    needs: [build-arm64, build-win64]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Attach to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            bin/Starships-${{ github.ref_name }}-arm64.zip
-            bin/Starships-${{ github.ref_name }}-arm64.dmg
+          files: dist/*
+          fail_on_unmatched_files: true
           body: |
-            Native macOS arm64 build (openFrameworks 0.12.1) of the tagged
-            version, built on a GitHub macOS arm64 runner with the
-            BUILD-arm64.md make recipe. Data + icon are embedded — the app
-            is self-contained.
+            Native builds of the tagged version, built from source on GitHub
+            runners with openFrameworks 0.12.1.
 
-            **Unsigned build:** on first launch macOS Gatekeeper will block
-            it. Right-click → Open (once), or
+            **macOS arm64** (`Starships-<tag>-arm64.zip` / `.dmg`): built with
+            the BUILD-arm64.md make recipe on a macOS arm64 runner. Data +
+            icon are embedded — the app is self-contained. The DMG is
+            drag-to-Applications.
+
+            **Windows x64** (`Starships-<tag>-win64.zip`): built with
+            MSYS2/MINGW64 + the oF msys2 release. Unzip anywhere and run
+            `Starships.exe` — the `data/` folder and the mingw runtime DLLs
+            it needs ship INSIDE the zip, so keep them together in one
+            folder. (Built with oF's default app icon; no Windows installer.)
+
+            **Unsigned builds:** Windows SmartScreen will warn on first
+            launch (More info → Run anyway). macOS Gatekeeper likewise —
+            right-click → Open (once), or
             `xattr -dr com.apple.quarantine /Applications/Starships.app`.
 
             **Known limitation:** launched from a non-GUI context the window
             can size itself wrong (see BUILD-arm64.md) — open it from
-            Finder/Terminal normally.
-          fail_on_unmatched_files: true
+            Finder/Terminal/Explorer normally.

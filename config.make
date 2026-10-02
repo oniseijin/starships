@@ -15,7 +15,18 @@
 # ~/.local/lib — the oF makefiles' hidden-dir filter (`grep -v "/\.[^\.]"`)
 # matches the "/.local" path component and excludes ALL core sources, which
 # breaks the build. See BUILD-arm64.md.
+#
+# Windows (MSYS2/MINGW64): uname reports MINGW*/MSYS* there — oF's
+# makefileCommon maps those to its msys2 platform on its own, but OF_ROOT
+# must point at the msys2 release of oF (same hidden-dir rule applies: no
+# `/.` path components). This matches the layout the release workflow
+# creates on the CI runner (C:\of_v0.12.1_msys2_mingw64_release).
+UNAME_S := $(shell uname -s 2>/dev/null)
+ifneq (,$(findstring MINGW,$(UNAME_S))$(findstring MSYS,$(UNAME_S)))
+OF_ROOT = /c/of_v0.12.1_msys2_mingw64_release
+else
 OF_ROOT = $(HOME)/lib/of_v0.12.1_osx_release
+endif
 
 ################################################################################
 # PROJECT ROOT

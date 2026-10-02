@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## [0.1.7] - 2026-10-01
+
+* Windows x64 release builds — the release workflow now also builds a
+  Win64 exe on every `v*` tag and attaches `Starships-<tag>-win64.zip` to
+  the same release as the mac artifacts (3 files total). Recipe: a
+  `windows-latest` job under msys2/setup-msys2 (MSYSTEM=MINGW64, the
+  oF-recommended flavor), openFrameworks 0.12.1
+  `of_v0.12.1_msys2_mingw64_release.zip` cached extracted at
+  `C:\of_v0.12.1_msys2_mingw64_release` (incl. the compiled core, same
+  pattern as the mac job), toolchain + oF libs via the oF-shipped
+  `scripts/msys2/install_dependencies.sh` (unzip/make + gcc + assimp
+  cairo curl FreeImage glew glfw glm fmt zlib brotli libpng harfbuzz
+  libsndfile libusb libxml2 mpg123 nlohmann-json openal opencv pkgconf
+  pugixml rtaudio uriparser utf8cpp — re-run every run since pacman state
+  isn't cached) plus `mingw-w64-x86_64-ntldd-git` for `make copy_dlls`.
+  Package = `Starships.exe` + mingw runtime DLLs (copied next to the exe
+  by `copy_dlls`) + `data/` (oF's default Windows data path) →
+  Compress-Archive → upload-artifact → one final `release` job attaches
+  everything with a single softprops call (no two-job release race).
+* `config.make`: OF_ROOT is now OS-conditional — `uname` MINGW*/MSYS*
+  (MSYS2 on Windows) points at `/c/of_v0.12.1_msys2_mingw64_release`,
+  everything else keeps `$(HOME)/lib/of_v0.12.1_osx_release`. Zero change
+  for the mac build (same resolved path as before).
+* `Makefile`: the `after` target (bundle data/icon embed + plutil) is
+  now guarded `ifeq ($(shell uname -s),Darwin)` — mac behavior unchanged
+  (warning about overriding oF's own `after` predates this), and on
+  Windows it can never fire.
+* `main.cpp` needs no change: the `TARGET_OSX` Resources/data override is
+  compiled only on macOS, so Windows uses oF's default exe-adjacent
+  `data/`. Audio works on Windows out of the box (rtAudio ships via the
+  oF msys2 dependency list).
+
 ## [0.1.6] - 2026-10-02
 
 - Release builds now ship a DMG (drag-to-Applications) alongside the zip.
